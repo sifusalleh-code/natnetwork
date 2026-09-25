@@ -2,9 +2,12 @@
 
 namespace App\Engines\Sales\Services;
 
+use App\Engines\Billing\Models\QuotationPaymentPlan;
 use App\Engines\Sales\Models\BuilderSession;
 use App\Engines\Sales\Models\MasterSpecification;
 use App\Engines\Sales\Models\ProjectRequest;
+use App\Engines\Sales\Models\Quotation;
+use App\Engines\Scheduling\Models\SlotHold;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +30,9 @@ class MasterSpecificationService
                 'status' => ProjectRequest::STATUS_DRAFT,
                 'requirement_snapshot' => $requirement,
             ]);
+            if (Quotation::query()->where('project_request_id', $request->id)->where('status', Quotation::STATUS_ACCEPTED)->exists()) {
+                throw ValidationException::withMessages(['specification' => ['Quotation projek ini telah diterima. Perubahan skop kini hanya melalui Request Change dalam portal projek.']]);
+            }
             $request->update(['service_package_id' => $builder->service_package_id, 'requirement_snapshot' => $requirement]);
 
             $draft = $request->specifications()->where('status', MasterSpecification::STATUS_DRAFT)->latest('version')->first();
@@ -60,6 +66,18 @@ class MasterSpecificationService
                 throw ValidationException::withMessages(['specification' => ['Sila jana semula spesifikasi selepas menyimpan perubahan Builder.']]);
             }
 
+            // Spec APPROVED lama digantikan. Quotation yang belum diterima (belum dibayar) tidak lagi sah —
+            // sama seperti peraturan reset (Keputusan Owner 25 Sep 2026 #3): dipadam, bukan sekadar dikunci.
+            $supersededIds = $specification->request->specifications()->where('status', MasterSpecification::STATUS_APPROVED)->pluck('id');
+            if ($supersededIds->isNotEmpty()) {
+                $staleQuotationIds = Quotation::query()->whereIn('master_specification_id', $supersededIds)
+                    ->where('status', '!=', Quotation::STATUS_ACCEPTED)->pluck('id');
+                if ($staleQuotationIds->isNotEmpty()) {
+                    SlotHold::query()->whereIn('quotation_id', $staleQuotationIds)->delete();
+                    QuotationPaymentPlan::query()->whereIn('quotation_id', $staleQuotationIds)->delete();
+                    Quotation::query()->whereIn('id', $staleQuotationIds)->delete();
+                }
+            }
             $specification->request->specifications()->where('status', MasterSpecification::STATUS_APPROVED)->update(['status' => MasterSpecification::STATUS_SUPERSEDED, 'superseded_at' => now()]);
             $specification->update(['status' => MasterSpecification::STATUS_APPROVED, 'approved_by_user_id' => $customer->id, 'approved_at' => now()]);
             $this->quotations->createFromSpecification($specification->fresh('request'));

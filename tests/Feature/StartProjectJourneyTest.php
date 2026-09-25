@@ -155,8 +155,9 @@ class StartProjectJourneyTest extends TestCase
         $this->actingAs($client, 'client')->withSession(['natnetwork_builder_session_id' => $builder->id])->post(route('builder.reset'), ['confirm' => '1'])->assertRedirect(route('builder.start'));
 
         $this->assertSame(Invoice::STATUS_VOID, $invoice->fresh()->status);
-        $this->assertSame(Quotation::STATUS_CANCELLED, $quotation->fresh()->status);
-        $this->assertDatabaseHas('slot_holds', ['quotation_id' => $quotation->id, 'status' => 'RELEASED']);
+        // Keputusan Owner 25 Sep 2026 #3: reset sebelum bayaran memadam sepenuhnya rekod spec lama (bukan sekadar dikunci).
+        $this->assertDatabaseMissing('quotations', ['id' => $quotation->id]);
+        $this->assertDatabaseMissing('slot_holds', ['quotation_id' => $quotation->id]);
         $this->assertNotNull($builder->fresh()->reset_at);
         $this->assertDatabaseHas('payments', ['status' => Payment::STATUS_FAILED]); // rekod gagal disimpan
         $this->assertDatabaseHas('audit_logs', ['action' => 'START_PROJECT_RESET']);

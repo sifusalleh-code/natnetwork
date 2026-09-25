@@ -6,24 +6,27 @@ use App\Engines\Affiliate\Services\AffiliateCommissionService;
 use App\Engines\Audit\Services\AuditLogger;
 use App\Engines\Billing\Models\Invoice;
 use App\Engines\Billing\Models\Payment;
+use App\Engines\Billing\Models\QuotationPaymentPlan;
 use App\Engines\Sales\Models\BuilderSession;
+use App\Engines\Sales\Models\MasterSpecification;
 use App\Engines\Sales\Models\Order;
 use App\Engines\Sales\Models\ProjectRequest;
 use App\Engines\Sales\Models\Quotation;
-use App\Engines\Scheduling\Services\SchedulingService;
+use App\Engines\Scheduling\Models\SlotHold;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Pelanggan reset Start Project (contoh: selepas bayaran gagal). Hanya dibenarkan jika TIADA bayaran berjaya dan tiada Order.
- * Rekod tidak dipadam: invois belum dibayar → VOID, bayaran belum selesai → CANCELLED, quotation → CANCELLED,
- * slot dilepaskan, Start Project ditanda reset. Pelanggan kemudian mula Start Project baharu.
+ * Pelanggan reset Start Project (contoh: selepas bayaran gagal). Keputusan Owner 25 Sep 2026 #3:
+ * Reset HANYA dibenarkan sebelum sebarang bayaran dibuat (tiada bayaran berjaya/sedang diproses, tiada Order).
+ * Invois yang telah dikeluarkan tetapi tidak pernah dibayar → VOID (rekod kewangan tidak dipadam — AGENTS §5/§8).
+ * Bayaran belum selesai → CANCELLED. Slot hold, quotation, Master Specification dan Project Request lama
+ * (belum pernah diterima/dibayar) DIPADAM sepenuhnya supaya pelanggan mula Start Project yang benar-benar baharu.
  */
 class StartProjectResetService
 {
     public function __construct(
-        private readonly SchedulingService $scheduling,
         private readonly AffiliateCommissionService $commissions,
         private readonly AuditLogger $audit,
     ) {
@@ -61,16 +64,24 @@ class StartProjectResetService
                 Payment::query()->whereIn('invoice_id', $voided)->where('status', Payment::STATUS_PENDING)->update(['status' => Payment::STATUS_CANCELLED, 'updated_at' => now()]);
                 $this->commissions->cancelForInvoices($voided);
             }
-            foreach ($quotationIds as $quotationId) {
-                $this->scheduling->releaseForQuotation($quotationId);
-            }
+
+            // Tiada bayaran pernah berjaya di sini (disekat di atas), jadi selamat memadam sepenuhnya
+            // slot hold, quotation, Master Specification dan Project Request lama — bukan rekod kewangan.
             if ($quotationIds) {
-                Quotation::query()->whereIn('id', $quotationIds)->whereNotIn('status', [Quotation::STATUS_CANCELLED, Quotation::STATUS_EXPIRED, Quotation::STATUS_DECLINED])
-                    ->update(['status' => Quotation::STATUS_CANCELLED, 'updated_at' => now()]);
+                SlotHold::query()->whereIn('quotation_id', $quotationIds)->delete();
+                QuotationPaymentPlan::query()->whereIn('quotation_id', $quotationIds)->delete();
+                Quotation::query()->whereIn('id', $quotationIds)->delete();
+            }
+            if ($requestId) {
+                MasterSpecification::query()->where('project_request_id', $requestId)->delete();
+                ProjectRequest::query()->whereKey($requestId)->delete();
             }
             $session->forceFill(['reset_at' => now()])->save();
 
-            $this->audit->record('START_PROJECT_RESET', $customer, $customer, null, ['builder_session_id' => $session->id, 'quotation_ids' => $quotationIds, 'voided_invoice_ids' => $voided]);
+            $this->audit->record('START_PROJECT_RESET', $customer, $customer, null, [
+                'builder_session_id' => $session->id, 'project_request_id' => $requestId,
+                'deleted_quotation_ids' => $quotationIds, 'voided_invoice_ids' => $voided,
+            ]);
         });
     }
 }
