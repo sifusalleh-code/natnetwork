@@ -103,6 +103,7 @@ class SchedulingService
 
             return SlotHold::query()->create([
                 'quotation_id' => $quotation->id,
+                'is_sandbox' => (bool) $quotation->is_sandbox,
                 'start_date' => $start->toDateString(),
                 'weeks' => $this->weeksFor($quotation),
                 'status' => SlotHold::HELD,

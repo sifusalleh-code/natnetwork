@@ -31,24 +31,38 @@
         <a @class(['is-active' => $status === $s]) href="{{ route('admin.partners.index', ['status' => $s]) }}">{{ $label }}</a>
     @endforeach
 </nav>
-<article class="card adm-scroll">
-    <table class="adm-table">
-        <thead><tr><th>Nama</th><th>Emel</th><th>Status</th><th>Modal aktif (RM)</th><th>Daftar</th><th></th></tr></thead>
-        <tbody>
-        @forelse ($partners as $p)
-            <tr>
-                <td><a href="{{ route('admin.partners.show', $p) }}">{{ $p->name }}</a>@if ($p->company_name)<br><span class="adm-help">{{ $p->company_name }}</span>@endif</td>
-                <td>{{ $p->email }}</td>
-                <td><span class="adm-badge">{{ $p->status }}</span></td>
-                <td>{{ number_format($p->activeCapitalCents() / 100, 2) }}</td>
-                <td>{{ $p->created_at->format('d/m/Y') }}</td>
-                <td>@include('admin.partials.impersonate', ['type' => 'partner', 'id' => $p->id])</td>
-            </tr>
-        @empty
-            <tr><td colspan="6">Tiada partner.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
-    {{ $partners->links() }}
-</article>
+<form method="post" action="{{ route('admin.partners.bulk') }}" x-data="{ selected: [] }">
+    @csrf
+    <article class="card adm-scroll">
+        <table class="adm-table">
+            <thead><tr>
+                <th><input type="checkbox" @change="selected = $event.target.checked ? [{{ $partners->pluck('id')->implode(',') }}] : []"></th>
+                <th>Nama</th><th>Emel</th><th>Status</th><th>Modal aktif (RM)</th><th>Daftar</th><th></th>
+            </tr></thead>
+            <tbody>
+            @forelse ($partners as $p)
+                <tr>
+                    <td><input type="checkbox" name="ids[]" value="{{ $p->id }}" x-model.number="selected"></td>
+                    <td><a href="{{ route('admin.partners.show', $p) }}">{{ $p->name }}</a>@if ($p->company_name)<br><span class="adm-help">{{ $p->company_name }}</span>@endif</td>
+                    <td>{{ $p->email }}</td>
+                    <td><span class="adm-badge">{{ $p->status }}</span></td>
+                    <td>{{ number_format($p->activeCapitalCents() / 100, 2) }}</td>
+                    <td>{{ $p->created_at->format('d/m/Y') }}</td>
+                    <td>@include('admin.partials.impersonate', ['type' => 'partner', 'id' => $p->id])</td>
+                </tr>
+            @empty
+                <tr><td colspan="7">Tiada partner.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+        {{ $partners->links() }}
+    </article>
+    @include('admin.partials.bulk-toolbar', ['actions' => [
+        ['key' => 'approve', 'label' => 'Luluskan', 'needsReason' => false, 'confirm' => 'Luluskan %d partner terpilih?'],
+        ['key' => 'reject', 'label' => 'Tolak', 'needsReason' => true, 'reasonLabel' => 'Sebab tolak (wajib):', 'confirm' => 'Tolak %d partner terpilih?', 'danger' => true],
+        ['key' => 'suspend', 'label' => 'Gantung', 'needsReason' => true, 'reasonLabel' => 'Sebab gantung (wajib):', 'confirm' => 'Gantung %d partner terpilih?', 'danger' => true],
+        ['key' => 'activate', 'label' => 'Aktifkan Semula', 'needsReason' => false, 'confirm' => 'Aktifkan semula %d partner terpilih?'],
+        ['key' => 'delete', 'label' => 'Padam (jika tiada modal)', 'needsReason' => false, 'confirm' => 'Padam %d partner terpilih? Partner yang mempunyai modal/earning/payout akan dilangkau secara automatik.', 'danger' => true],
+    ]])
+</form>
 @endsection

@@ -3,6 +3,7 @@
 namespace App\Engines\Sales\Services;
 
 use App\Engines\Audit\Services\AuditLogger;
+use App\Engines\Billing\Models\BillingSetting;
 use App\Engines\Billing\Services\DocumentNumberService;
 use App\Engines\Identity\Models\Admin;
 use App\Engines\Sales\Events\QuotationAccepted;
@@ -47,8 +48,13 @@ class QuotationWorkflowService
             $snapshot['project_template'] = $template;
             unset($snapshot['status_reason']);
 
+            // Mod Billplz (sandbox/production) semasa quotation dihantar mengunci keseluruhan rantaian
+            // (slot, order, projek) kepada mod yang sama — rekod ujian tidak pernah bercampur dengan production.
+            $isSandbox = $quotation->is_sandbox || BillingSetting::current()->isSandbox();
+
             $quotation->forceFill([
-                'number' => $quotation->number ?? $this->numbers->next('QT', false),
+                'is_sandbox' => $isSandbox,
+                'number' => $quotation->number ?? $this->numbers->next('QT', $isSandbox),
                 'status' => Quotation::STATUS_SENT,
                 'price_snapshot' => $snapshot,
                 'terms_snapshot' => $quotation->terms_snapshot ?? config('sales_terms'),

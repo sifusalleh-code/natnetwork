@@ -27,6 +27,15 @@ class EnsureClientAuthenticated
             return redirect()->route('client.login');
         }
 
+        if (Auth::guard('client')->user()->isSuspended()) {
+            Auth::guard('client')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+
+            return redirect()->route('client.login')->withErrors(['email' => 'Akaun ini telah digantung. Sila hubungi kami.']);
+        }
+
         // Portal penuh disediakan selepas bayaran pertama berjaya (Order disahkan). Sebelum itu hanya langkah
         // Start Project (quotation, slot, invois & bayaran), profil dan notifikasi dibenarkan.
         if (! self::portalReady((int) Auth::guard('client')->id()) && ! $request->routeIs(self::PRE_ORDER_ROUTES)) {

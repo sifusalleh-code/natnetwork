@@ -15,6 +15,14 @@ class EnsurePartnerAuthenticated
         if (! $partner) {
             return redirect()->route('partner.login');
         }
+        if ($partner->isSuspended()) {
+            Auth::guard('partner')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+
+            return redirect()->route('partner.login')->withErrors(['email' => 'Akaun ini telah digantung. Sila hubungi kami.']);
+        }
         // Dashboard & menu portal hanya dibuka selepas bayaran modal berjaya dan profil lengkap.
         if ($requirement === 'onboarded' && $partner->onboardingStep() < 5) {
             return redirect()->route('partner.onboarding');

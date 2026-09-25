@@ -65,7 +65,8 @@ class RefundService
 
                 $payment = Payment::query()->where('invoice_id', $invoice->id)->whereIn('status', [Payment::STATUS_PAID, Payment::STATUS_PARTIALLY_REFUNDED])->latest('id')->first();
                 $refunds->push(Refund::query()->create([
-                    'number' => $this->numbers->next('RF', $invoice->is_sandbox),
+                    // NAT-REF-... (bukan NAT-RF-...) supaya berbeza jelas daripada nombor lain dan sepadan dengan MS §9.
+                    'number' => $this->numbers->next('REF', $invoice->is_sandbox),
                     'is_sandbox' => $invoice->is_sandbox,
                     'invoice_id' => $invoice->id,
                     'payment_id' => $payment?->id,

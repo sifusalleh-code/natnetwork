@@ -12,6 +12,7 @@ class Affiliate extends Authenticatable
     protected $fillable = [
         'name', 'email', 'phone', 'username', 'state', 'avatar_path', 'bank_name',
         'bank_account_number', 'bank_account_last4', 'facebook_url', 'instagram_url', 'twitter_url',
+        'suspended_at', 'suspended_reason', 'suspended_by_admin_id',
     ];
 
     protected $hidden = ['bank_account_number', 'remember_token'];
@@ -22,12 +23,18 @@ class Affiliate extends Authenticatable
             'email_verified_at' => 'datetime',
             'profile_completed_at' => 'datetime',
             'bank_account_number' => 'encrypted',
+            'suspended_at' => 'datetime',
         ];
     }
 
     public function getAuthPassword(): string
     {
         return '';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     public function isProfileComplete(): bool

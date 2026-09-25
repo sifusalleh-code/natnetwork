@@ -15,12 +15,17 @@ class User extends Authenticatable
     public const ROLE_ADMIN = 'ADMIN';
     public const ROLE_CUSTOMER = 'CUSTOMER';
 
-    protected $fillable = ['name', 'company', 'phone', 'email'];
+    protected $fillable = ['name', 'company', 'phone', 'email', 'suspended_at', 'suspended_reason', 'suspended_by_admin_id'];
 
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime'];
+        return ['email_verified_at' => 'datetime', 'suspended_at' => 'datetime'];
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 }

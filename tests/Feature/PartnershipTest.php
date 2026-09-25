@@ -146,7 +146,7 @@ class PartnershipTest extends TestCase
         $this->assertSame(2, PartnerPoolEntry::query()->count());
     }
 
-    public function test_admin_impersonation_full_access_but_blocks_payments_and_approvals(): void
+    public function test_admin_impersonation_is_readonly(): void
     {
         $admin = $this->admin();
         $client = $this->portalReadyClient();
@@ -162,12 +162,12 @@ class PartnershipTest extends TestCase
         $this->get(route('client.dashboard'))->assertOk()->assertSee('MOD ADMIN')->assertSee($client->name);
         $this->assertDatabaseHas('audit_logs', ['action' => 'IMPERSONATION_STARTED']);
 
-        // Tindakan biasa dibenarkan & direkod
-        $this->put(route('client.profile.update'), ['name' => 'Nama Oleh Admin', 'phone' => '0199'])->assertSessionHasNoErrors();
-        $this->assertSame('Nama Oleh Admin', $client->fresh()->name);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'IMPERSONATED_ACTION']);
+        // Keputusan Owner 25 Sep 2026 #5: readonly sahaja — SEMUA tindakan bukan-GET disekat, termasuk kemas kini profil biasa.
+        $this->from(route('client.profile'))->put(route('client.profile.update'), ['name' => 'Nama Oleh Admin', 'phone' => '0199'])->assertSessionHasErrors('impersonation');
+        $this->assertNotSame('Nama Oleh Admin', $client->fresh()->name);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'IMPERSONATED_ACTION_BLOCKED']);
 
-        // Bayaran disekat
+        // Bayaran turut disekat
         $inv = app(InvoiceService::class)->issue('OTHER', ['name' => 'c', 'email' => 'c@x.test'], [['description' => 'x', 'quantity' => 1, 'unit_price' => '10']], $client);
         $this->from(route('client.billing.invoice', $inv))->post(route('client.billing.pay', $inv))->assertSessionHasErrors('impersonation');
         $this->assertDatabaseCount('payments', 0);

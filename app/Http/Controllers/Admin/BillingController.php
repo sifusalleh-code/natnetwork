@@ -97,6 +97,8 @@ class BillingController extends Controller
         $audit->record('SANDBOX_BILLING_PURGED', Auth::guard('admin')->user(), null, null, $counts);
 
         return redirect()->route('admin.billing.invoices', ['mode' => 'sandbox'])
-            ->with('status', "Data sandbox dipadam: {$counts['invoices']} invois, {$counts['payments']} bayaran, {$counts['receipts']} resit.");
+            ->with('status', "Data sandbox dipadam: {$counts['invoices']} invois, {$counts['payments']} bayaran, {$counts['receipts']} resit, "
+                ."{$counts['refunds']} refund, {$counts['change_requests']} change request, {$counts['projects']} projek, "
+                ."{$counts['orders']} order, {$counts['slot_holds']} slot hold, {$counts['quotations']} quotation.");
     }
 }

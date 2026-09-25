@@ -12,9 +12,9 @@ class Order extends Model
     public const CONFIRMED = 'CONFIRMED';
     public const CANCELLED = 'CANCELLED';
 
-    protected $fillable = ['number', 'quotation_id', 'customer_user_id', 'slot_hold_id', 'status', 'confirmed_at'];
+    protected $fillable = ['number', 'quotation_id', 'is_sandbox', 'customer_user_id', 'slot_hold_id', 'status', 'confirmed_at'];
 
-    protected function casts(): array { return ['confirmed_at' => 'datetime']; }
+    protected function casts(): array { return ['is_sandbox' => 'boolean', 'confirmed_at' => 'datetime']; }
 
     public function quotation(): BelongsTo { return $this->belongsTo(Quotation::class); }
     public function customer(): BelongsTo { return $this->belongsTo(User::class, 'customer_user_id'); }

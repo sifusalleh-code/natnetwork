@@ -43,8 +43,9 @@ class ProjectService
         $total = (float) $quotation->total_amount;
 
         $project = Project::query()->create([
-            'number' => $this->numbers->next('PRJ', false),
+            'number' => $this->numbers->next('PRJ', (bool) $order->is_sandbox),
             'order_id' => $order->id,
+            'is_sandbox' => (bool) $order->is_sandbox,
             'quotation_id' => $quotation->id,
             'customer_user_id' => $order->customer_user_id,
             'name' => $quotation->price_snapshot['selected_package']['name'] ?? ($quotation->items()[0]['description'] ?? 'Projek '.$quotation->number),

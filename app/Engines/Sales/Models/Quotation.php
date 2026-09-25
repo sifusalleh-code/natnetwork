@@ -16,8 +16,8 @@ class Quotation extends Model
     public const STATUS_DECLINED = 'DECLINED';
     public const STATUS_CANCELLED = 'CANCELLED';
 
-    protected $fillable = ['project_request_id', 'master_specification_id', 'number', 'status', 'price_snapshot', 'terms_snapshot', 'total_amount', 'estimated_weeks', 'valid_until', 'sent_at', 'viewed_at', 'accepted_at', 'accepted_by_user_id', 'acceptance_metadata', 'payment_completed_at', 'payment_completed_by_admin_id', 'invalidated_at'];
-    protected function casts(): array { return ['price_snapshot' => 'array', 'terms_snapshot' => 'array', 'total_amount' => 'decimal:2', 'valid_until' => 'datetime', 'sent_at' => 'datetime', 'viewed_at' => 'datetime', 'accepted_at' => 'datetime', 'acceptance_metadata' => 'array', 'payment_completed_at' => 'datetime', 'invalidated_at' => 'datetime']; }
+    protected $fillable = ['project_request_id', 'master_specification_id', 'is_sandbox', 'number', 'status', 'price_snapshot', 'terms_snapshot', 'total_amount', 'estimated_weeks', 'valid_until', 'sent_at', 'viewed_at', 'accepted_at', 'accepted_by_user_id', 'acceptance_metadata', 'payment_completed_at', 'payment_completed_by_admin_id', 'invalidated_at'];
+    protected function casts(): array { return ['is_sandbox' => 'boolean', 'price_snapshot' => 'array', 'terms_snapshot' => 'array', 'total_amount' => 'decimal:2', 'valid_until' => 'datetime', 'sent_at' => 'datetime', 'viewed_at' => 'datetime', 'accepted_at' => 'datetime', 'acceptance_metadata' => 'array', 'payment_completed_at' => 'datetime', 'invalidated_at' => 'datetime']; }
     public function isAwaitingCustomer(): bool { return in_array($this->status, [self::STATUS_SENT, self::STATUS_VIEWED], true) && ! $this->isExpired(); }
     public function isExpired(): bool { return $this->status === self::STATUS_EXPIRED || (in_array($this->status, [self::STATUS_SENT, self::STATUS_VIEWED], true) && $this->valid_until?->isPast()); }
     public function items(): array { return $this->price_snapshot['items'] ?? []; }

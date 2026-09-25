@@ -22,6 +22,15 @@ class EnsureAffiliateAccess
             return redirect()->route('affiliate.login');
         }
 
+        if ($affiliate->isSuspended()) {
+            Auth::guard('affiliate')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+
+            return redirect()->route('affiliate.login')->withErrors(['email' => 'Akaun ini telah digantung. Sila hubungi kami.']);
+        }
+
         if ($requirement === 'profile' && ! $affiliate->isProfileComplete()) {
             return redirect()->route('affiliate.profile')->with('status', 'Sila lengkapkan profil anda untuk membuka Dashboard dan menu affiliate.');
         }
