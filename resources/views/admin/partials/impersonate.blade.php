@@ -1,0 +1,1 @@
+<form method="post" action="{{ route('admin.impersonate.start', [$type, $id]) }}" style="display: inline;" onsubmit="return confirm('Log masuk sebagai pengguna ini? Semua tindakan anda akan direkod.')">@csrf<button class="button button-secondary button-compact" type="submit">Log masuk sebagai</button></form>

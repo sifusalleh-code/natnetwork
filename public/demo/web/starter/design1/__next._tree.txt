@@ -1,0 +1,10 @@
+:HL["/demo/web/starter/design1/_next/static/chunks/0j_igt6ndkfia.css","style"]
+:HL["/demo/web/starter/design1/_next/static/media/2a65768255d6b625-s.p.3u4lli0-axodc.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/demo/web/starter/design1/_next/static/media/f141b5b7abe57afc-s.p.380f-mwhk0aej.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/demo/web/starter/design1/images/hero-homestay.png","image"]
+:HL["/demo/web/starter/design1/images/room-deluxe.png","image"]
+:HL["/demo/web/starter/design1/images/outdoor-lounge.png","image"]
+:HL["/demo/web/starter/design1/images/gallery-breakfast.png","image"]
+:HL["/demo/web/starter/design1/images/room-loft.png","image"]
+:HL["/demo/web/starter/design1/images/room-family.png","image"]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"RrLORsvwegTErwJ9NquPw"}
