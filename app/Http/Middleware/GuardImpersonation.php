@@ -10,19 +10,16 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Mod admin (log masuk sebagai pengguna):
+ * Mod admin (log masuk sebagai ahli/pelanggan/affiliate/partner) — Keputusan Owner 25 Sep 2026 #5:
+ * READONLY SAHAJA. Admin boleh melihat portal pengguna melalui mata pengguna, tetapi TIDAK boleh
+ * membuat sebarang tindakan bagi pihak pengguna (bayaran, kelulusan, kemas kini profil, dll).
  * - sesi tamat jika admin tidak lagi log masuk;
- * - tindakan kewangan / kontraktual disekat (bayar, terima quotation, pegang slot, keputusan CR, tambah modal);
- * - setiap permintaan bukan-GET direkod dalam audit log sebagai tindakan admin bagi pihak pengguna.
+ * - setiap permintaan bukan-GET/HEAD disekat sepenuhnya (kecuali log keluar impersonation itu sendiri);
+ * - percubaan tindakan disekat direkod dalam audit log.
  */
 class GuardImpersonation
 {
     public const KEY = 'impersonation';
-
-    public const BLOCKED_ROUTES = [
-        'client.billing.pay', 'client.quotations.accept', 'client.quotations.slot.hold', 'client.changes.decide',
-        'partner.capital.store', 'partner.pay', 'affiliate.withdrawals.store',
-    ];
 
     public const LOGOUT_ROUTES = ['client.logout', 'affiliate.logout', 'partner.logout'];
 
@@ -44,19 +41,21 @@ class GuardImpersonation
         if (in_array($route, self::LOGOUT_ROUTES, true)) {
             return redirect()->route('admin.impersonate.stop.get');
         }
-        if (in_array($route, self::BLOCKED_ROUTES, true)) {
-            return back()->withErrors(['impersonation' => 'Mod Admin: tindakan ini (bayaran / kelulusan) hanya boleh dibuat oleh pengguna sendiri.']);
+
+        // Tindakan admin sendiri (contoh: admin.impersonate.stop/start di tab lain) bukan tindakan "bagi pihak pengguna".
+        if ($route && str_starts_with($route, 'admin.')) {
+            return $next($request);
         }
 
-        $response = $next($request);
-
-        if (! $request->isMethod('GET') && $route && ! str_starts_with($route, 'admin.')) {
-            app(AuditLogger::class)->record('IMPERSONATED_ACTION', $admin, null, null, [
-                'as' => $session['type'].'#'.$session['id'], 'route' => $route, 'status' => $response->getStatusCode(),
+        if (! $request->isMethod('GET') && ! $request->isMethod('HEAD')) {
+            app(AuditLogger::class)->record('IMPERSONATED_ACTION_BLOCKED', $admin, null, null, [
+                'as' => $session['type'].'#'.$session['id'], 'route' => $route, 'method' => $request->method(),
             ]);
+
+            return back()->withErrors(['impersonation' => 'Mod Admin: anda sedang melihat portal ini sebagai READONLY sahaja. Tindakan ini hanya boleh dibuat oleh pengguna sendiri.']);
         }
 
-        return $response;
+        return $next($request);
     }
 
     public static function end(Request $request): void
