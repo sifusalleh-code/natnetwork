@@ -1,59 +1,68 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# NatNetwork Synergy
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Platform operasi digital untuk perniagaan perkhidmatan web dan teknologi — laman syarikat awam,
+Guided Project Builder, quotation & pembayaran (Billplz), pengurusan projek, portal pelanggan,
+program affiliate, dan pentadbiran operasi — dalam satu aplikasi **Laravel 12 Modular Monolith**.
 
-## About Laravel
+## Dokumen rujukan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Baca dahulu sebelum membangunkan apa-apa dalam repo ini:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. [`AGENTS.md`](AGENTS.md) — perlembagaan projek (prinsip, peranan, engine ownership, peraturan
+   wajib). Ini mengatasi semua dokumen lain apabila berlaku percanggahan.
+2. [`MASTER_SPECIFICATION.md`](MASTER_SPECIFICATION.md) dan
+   [`NATNETWORK_V1_MASTER_SPECIFICATION.md`](NATNETWORK_V1_MASTER_SPECIFICATION.md) — spesifikasi
+   keperluan produk yang diluluskan.
+3. [`AFFILIATE_SPEC.md`](AFFILIATE_SPEC.md) — spesifikasi program affiliate.
+4. [`docs/OWNER_DECISIONS_2026_09_25.md`](docs/OWNER_DECISIONS_2026_09_25.md) — keputusan Owner
+   terkini yang mengatasi bahagian dokumen di atas apabila bercanggah.
+5. [`docs/PHASE_TRACKER.md`](docs/PHASE_TRACKER.md) — status pelaksanaan mengikut 10 fasa `AGENTS.md` §19.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Jangan membina berdasarkan andaian, chat, draf tidak diluluskan atau versi lapuk — lihat `AGENTS.md` §1.
 
-## Learning Laravel
+## Seni bina
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Corak:** Modular Monolith, satu pangkalan data.
+- **Engine perniagaan** (`app/Engines/*`): Identity, Sales, Pricing, Scheduling, Billing, Project,
+  ProjectContent, Communication, Cms, Audit, Analytics, Affiliate, Partnership.
+- **Adapter luaran** (`app/Adapters/*`): Billplz (bayaran), Resend (e-mel), Email (OTP). Adapter
+  tidak menentukan kebenaran perniagaan — lihat `AGENTS.md` §3.
+- **Runtime:** PHP 8.2+, Laravel 12, SQLite (fail tunggal — lihat
+  `docs/OWNER_DECISIONS_2026_09_25.md` #2/#4), Blade + Tailwind CSS + Alpine.js + Vite.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Pemasangan pembangunan tempatan
 
-## Laravel Sponsors
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+npm install && npm run build   # atau `npm run dev` semasa membangun
+composer dev                   # server + queue + log + vite serentak
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Ujian
 
-### Premium Partners
+```bash
+composer test
+# atau terus:
+php artisan test
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Setiap task pembangunan mesti melalui: audit sedia ada → laksana skop diluluskan → migration jika
+perlu → function test → security test → regression test → laporan → kelulusan (`AGENTS.md` §15).
+Jangan anggap task selesai hanya kerana kod compile.
 
-## Contributing
+## Deploy
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Lihat [`deploy/deploy.sh`](deploy/deploy.sh) (VPS AlmaLinux, dijalankan sebagai root, boleh
+dijalankan berulang kali dengan selamat). Ia membuat sandaran pangkalan data secara automatik
+sebelum setiap migrasi.
 
-## Code of Conduct
+## Status projek
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Ini **bukan** projek greenfield/kosong lagi — lihat `docs/PHASE_TRACKER.md` untuk status sebenar
+setiap fasa dan `docs/OWNER_DECISIONS_2026_09_25.md` untuk keputusan terkini yang mengatasi bahagian
+lapuk dalam dokumen spesifikasi asal (contoh: §20 "greenfield/kosong" dalam
+`NATNETWORK_V1_MASTER_SPECIFICATION.md` sudah tidak tepat).

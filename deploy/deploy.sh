@@ -2,6 +2,12 @@
 # NatNetwork — deploy ke VPS (AlmaLinux 8, Nginx sedia ada).
 # Selamat dijalankan berulang kali: .env dan database pelayan dikekalkan.
 # Tidak mengubah konfigurasi Nginx / aplikasi lain (GrowBiz dsb).
+#
+# Keputusan Owner 25 Sep 2026 #2/#4: SQLite (fail tunggal) dipilih sebagai pangkalan data yang
+# paling mudah dan sesuai untuk kegunaan folder tempatan (dev) dan pelayan cloud/VPS ini — tiada
+# server DB berasingan untuk dipasang/diselenggara. Ini menggantikan cadangan MariaDB dalam
+# NATNETWORK_V1_MASTER_SPECIFICATION.md §20 (lihat docs/OWNER_DECISIONS_2026_09_25.md).
+# Sandaran fail database dibuat secara automatik sebelum setiap migrasi (langkah 6/8).
 set -euo pipefail
 
 DOMAIN="app.natnetwork.net"
@@ -85,7 +91,17 @@ if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" != "Disabled" ]; t
   setsebool -P httpd_can_network_connect 1
 fi
 
-step "6/8 Migration + cache"
+step "6/8 Sandaran pangkalan data + Migration + cache"
+# Keputusan Owner 25 Sep 2026 #4: sandaran wajib sebelum migrasi (AGENTS/MS §16). Ringkas: salin fail SQLite.
+BACKUP_DIR="$APP_DIR/storage/app/backups"
+mkdir -p "$BACKUP_DIR"
+if [ -s database/database.sqlite ]; then
+  BACKUP_FILE="$BACKUP_DIR/database.sqlite.$(date +%Y%m%d%H%M%S).bak"
+  cp -a database/database.sqlite "$BACKUP_FILE"
+  echo "Sandaran sebelum migrasi: $BACKUP_FILE"
+  find "$BACKUP_DIR" -name 'database.sqlite.*.bak' -mtime +30 -delete
+  chown -R "$WEB_USER":"$WEB_USER" "$BACKUP_DIR"
+fi
 as_web php artisan migrate --force
 as_web php artisan optimize:clear
 as_web php artisan config:cache
