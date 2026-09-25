@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# NatNetwork: fail setempat yang tidak perlu di GitHub
+/Claude outputs/
+/bootstrap/cache/*.php
+/public/build/manifest-1.json
+/resources/css/app-1.css
+/resources/views/partials/site-footer.blade-1.php
+/resources/views/public/zip-home.blade-1.php
