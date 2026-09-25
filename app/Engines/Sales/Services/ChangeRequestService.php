@@ -33,7 +33,7 @@ class ChangeRequestService
         }
 
         $cr = ChangeRequest::query()->create([
-            'number' => $this->numbers->next('CR', false), 'project_id' => $project->id, 'quotation_id' => $project->quotation_id,
+            'number' => $this->numbers->next('CR', (bool) $project->is_sandbox), 'project_id' => $project->id, 'is_sandbox' => (bool) $project->is_sandbox, 'quotation_id' => $project->quotation_id,
             'customer_user_id' => $customer->id, 'title' => $title, 'description' => $description, 'status' => ChangeRequest::SUBMITTED,
         ]);
         $this->audit->record('CHANGE_REQUEST_SUBMITTED', $customer, $cr, null, ['number' => $cr->number]);

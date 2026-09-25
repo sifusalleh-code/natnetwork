@@ -14,17 +14,21 @@ class SlotHold extends Model
     public const RELEASED = 'RELEASED';
     public const EXPIRED = 'EXPIRED';
 
-    protected $fillable = ['quotation_id', 'start_date', 'weeks', 'status', 'expires_at', 'reserved_at', 'released_at', 'conflict'];
+    protected $fillable = ['quotation_id', 'is_sandbox', 'start_date', 'weeks', 'status', 'expires_at', 'reserved_at', 'released_at', 'conflict'];
 
     protected function casts(): array
     {
-        return ['start_date' => 'date', 'expires_at' => 'datetime', 'reserved_at' => 'datetime', 'released_at' => 'datetime', 'conflict' => 'boolean'];
+        return ['is_sandbox' => 'boolean', 'start_date' => 'date', 'expires_at' => 'datetime', 'reserved_at' => 'datetime', 'released_at' => 'datetime', 'conflict' => 'boolean'];
     }
 
-    /** Hold yang mengambil kapasiti: RESERVED, atau HELD yang belum tamat. */
+    /**
+     * Hold yang mengambil kapasiti: RESERVED, atau HELD yang belum tamat.
+     * Hold sandbox (mod ujian Billplz) tidak pernah mengambil kapasiti production dan sebaliknya.
+     */
     public function scopeOccupying(Builder $query): Builder
     {
-        return $query->where(fn ($q) => $q->where('status', self::RESERVED)->orWhere(fn ($q) => $q->where('status', self::HELD)->where('expires_at', '>', now())));
+        return $query->where('is_sandbox', false)
+            ->where(fn ($q) => $q->where('status', self::RESERVED)->orWhere(fn ($q) => $q->where('status', self::HELD)->where('expires_at', '>', now())));
     }
 
     public function isActiveHold(): bool

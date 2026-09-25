@@ -8,6 +8,12 @@ use App\Engines\Billing\Models\BillingSetting;
 use App\Engines\Billing\Models\Invoice;
 use App\Engines\Billing\Models\Payment;
 use App\Engines\Billing\Models\Receipt;
+use App\Engines\Billing\Models\Refund;
+use App\Engines\Project\Models\Project;
+use App\Engines\Sales\Models\ChangeRequest;
+use App\Engines\Sales\Models\Order;
+use App\Engines\Sales\Models\Quotation;
+use App\Engines\Scheduling\Models\SlotHold;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -199,18 +205,35 @@ class BillplzPaymentService
         return $key !== '' && $this->billplz->verify($this->billplz->redirectSignature($billplz, $key), $billplz['x_signature'] ?? null) ? $payment : null;
     }
 
-    /** Padam semua rekod sandbox (TEST-*). Rekod production tidak disentuh. */
+    /**
+     * Padam KESELURUHAN rantaian rekod sandbox (TEST-*): refund, change request, resit, bayaran, projek
+     * (milestone/kandungan/fail/log status projek terpadam serentak melalui cascade), order, slot hold,
+     * quotation dan invois. Rekod production tidak pernah disentuh (Keputusan Owner 25 Sep 2026, #2 & #8).
+     * Susunan padam mengikut kekangan foreign key supaya tiada rekod sandbox yang tertinggal.
+     */
     public function purgeSandbox(): array
     {
         return DB::transaction(function (): array {
             $counts = [
+                'refunds' => Refund::query()->where('is_sandbox', true)->count(),
+                'change_requests' => ChangeRequest::query()->where('is_sandbox', true)->count(),
                 'receipts' => Receipt::query()->where('is_sandbox', true)->count(),
                 'payments' => Payment::query()->where('is_sandbox', true)->count(),
+                'projects' => Project::query()->where('is_sandbox', true)->count(),
+                'orders' => Order::query()->where('is_sandbox', true)->count(),
+                'slot_holds' => SlotHold::query()->where('is_sandbox', true)->count(),
+                'quotations' => Quotation::query()->where('is_sandbox', true)->count(),
                 'invoices' => Invoice::query()->where('is_sandbox', true)->count(),
             ];
 
+            Refund::query()->where('is_sandbox', true)->delete();
+            ChangeRequest::query()->where('is_sandbox', true)->delete();
             Receipt::query()->where('is_sandbox', true)->delete();
             Payment::query()->where('is_sandbox', true)->delete();
+            Project::query()->where('is_sandbox', true)->delete();
+            Order::query()->where('is_sandbox', true)->delete();
+            SlotHold::query()->where('is_sandbox', true)->delete();
+            Quotation::query()->where('is_sandbox', true)->delete();
             Invoice::query()->where('is_sandbox', true)->delete();
 
             return $counts;

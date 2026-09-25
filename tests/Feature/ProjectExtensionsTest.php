@@ -47,7 +47,7 @@ class ProjectExtensionsTest extends TestCase
         $this->actingAs($admin, 'admin')->post(route('admin.projects.refund', $project), ['amounts' => [$deposit->id => '2900'], 'reason' => 'Pelanggan batal', 'transfer_reference' => 'MBB123', 'confirm' => '1'])->assertSessionHasNoErrors();
 
         $refund = Refund::query()->sole();
-        $this->assertStringStartsWith('NAT-RF-', $refund->number);
+        $this->assertStringStartsWith('NAT-REF-', $refund->number);
         $this->assertSame('2900.00', $deposit->fresh()->amount_refunded);
         $this->assertSame(Payment::STATUS_PARTIALLY_REFUNDED, Payment::query()->where('invoice_id', $deposit->id)->value('status'));
         $this->assertSame(Project::CANCELLED, $project->fresh()->status);

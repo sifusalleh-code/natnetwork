@@ -61,13 +61,13 @@ class Project extends Model
     ];
 
     protected $fillable = [
-        'number', 'order_id', 'quotation_id', 'customer_user_id', 'name', 'template', 'status', 'progress', 'planned_start_date',
+        'number', 'order_id', 'is_sandbox', 'quotation_id', 'customer_user_id', 'name', 'template', 'status', 'progress', 'planned_start_date',
         'started_at', 'started_by_admin_id', 'final_invoice_id', 'status_note', 'completed_at', 'support_days',
     ];
 
     protected function casts(): array
     {
-        return ['planned_start_date' => 'date', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'progress' => 'integer', 'support_days' => 'integer'];
+        return ['is_sandbox' => 'boolean', 'planned_start_date' => 'date', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'progress' => 'integer', 'support_days' => 'integer'];
     }
 
     public function isStarted(): bool { return $this->started_at !== null; }

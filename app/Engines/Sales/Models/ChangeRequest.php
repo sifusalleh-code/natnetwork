@@ -32,13 +32,13 @@ class ChangeRequest extends Model
     public const OPEN = [self::SUBMITTED, self::QUOTED];
 
     protected $fillable = [
-        'number', 'project_id', 'quotation_id', 'customer_user_id', 'title', 'description', 'status', 'assessment', 'admin_note',
+        'number', 'project_id', 'is_sandbox', 'quotation_id', 'customer_user_id', 'title', 'description', 'status', 'assessment', 'admin_note',
         'amount', 'extra_weeks', 'invoice_id', 'assessed_by_admin_id', 'assessed_at', 'decided_at', 'decision_metadata',
     ];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'extra_weeks' => 'integer', 'assessed_at' => 'datetime', 'decided_at' => 'datetime', 'decision_metadata' => 'array'];
+        return ['is_sandbox' => 'boolean', 'amount' => 'decimal:2', 'extra_weeks' => 'integer', 'assessed_at' => 'datetime', 'decided_at' => 'datetime', 'decision_metadata' => 'array'];
     }
 
     public function label(): string { return self::LABELS[$this->status][0] ?? $this->status; }

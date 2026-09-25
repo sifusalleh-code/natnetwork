@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class DocumentNumberService
 {
-    /** NAT-{TYPE}-YYYY-NNNN untuk production, TEST-{TYPE}-YYYY-NNNN untuk sandbox. */
-    public function next(string $type, bool $sandbox): string
+    /** NAT-{TYPE}-YYYY-NNNN untuk production, TEST-{TYPE}-YYYY-NNNN untuk sandbox. Null/tidak diketahui dianggap production. */
+    public function next(string $type, ?bool $sandbox): string
     {
         $prefix = ($sandbox ? 'TEST-' : 'NAT-').$type;
         $year = (int) now()->format('Y');
