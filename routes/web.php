@@ -212,10 +212,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::post('/{project}/refund', [AdminProjectController::class, 'refund'])->name('refund');
         });
         Route::get('/clients', [AdminAccountsController::class, 'clients'])->name('clients.index');
+        Route::post('/clients/bulk', [AdminAccountsController::class, 'bulkClients'])->name('clients.bulk');
         Route::get('/affiliates', [AdminAccountsController::class, 'affiliates'])->name('affiliates.index');
+        Route::post('/affiliates/bulk', [AdminAccountsController::class, 'bulkAffiliates'])->name('affiliates.bulk');
         Route::prefix('partners')->name('partners.')->group(function (): void {
             Route::get('/', [AdminPartnerController::class, 'index'])->name('index');
             Route::get('/pool', [AdminPartnerController::class, 'pool'])->name('pool');
+            Route::post('/bulk', [AdminPartnerController::class, 'bulk'])->name('bulk');
             Route::put('/settings', [AdminPartnerController::class, 'updateSettings'])->name('settings');
             Route::get('/{partner}', [AdminPartnerController::class, 'show'])->name('show');
             Route::post('/{partner}/review', [AdminPartnerController::class, 'review'])->name('review');
@@ -249,6 +252,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
             Route::put('/posters/{poster}', [\App\Http\Controllers\Admin\AffiliatePosterController::class, 'update'])->whereNumber('poster')->name('posters.update');
             Route::get('/posters/{poster}/image', [\App\Http\Controllers\Admin\AffiliatePosterController::class, 'image'])->whereNumber('poster')->name('posters.image');
             Route::get('/withdrawals', [\App\Http\Controllers\Admin\AffiliateWithdrawalController::class, 'index'])->name('withdrawals');
+            Route::post('/withdrawals/bulk-reject', [\App\Http\Controllers\Admin\AffiliateWithdrawalController::class, 'bulkReject'])->name('withdrawals.bulk-reject');
             Route::post('/withdrawals/{withdrawal}/paid', [\App\Http\Controllers\Admin\AffiliateWithdrawalController::class, 'paid'])->whereNumber('withdrawal')->name('withdrawals.paid');
             Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\AffiliateWithdrawalController::class, 'reject'])->whereNumber('withdrawal')->name('withdrawals.reject');
         });

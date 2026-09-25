@@ -33,6 +33,7 @@ class Partner extends Authenticatable
     }
 
     public function isApproved(): bool { return $this->status === self::APPROVED; }
+    public function isSuspended(): bool { return $this->status === self::SUSPENDED; }
     public function hasPaidCapital(): bool { return $this->capitals()->where('status', PartnerCapital::ACTIVE)->exists(); }
     public function isProfileComplete(): bool { return $this->profile_completed_at !== null; }
 

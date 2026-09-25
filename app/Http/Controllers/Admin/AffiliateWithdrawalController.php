@@ -41,4 +41,36 @@ class AffiliateWithdrawalController extends Controller
 
         return back()->with('status', 'Withdrawal #'.$withdrawal->id.' ditolak. Amaun dikembalikan ke baki affiliate.');
     }
+
+    /**
+     * Bulk TOLAK sahaja (bukan "Dibayar"): setiap permohonan Dibayar memerlukan rujukan transfer
+     * bank sebenar yang berasingan dan pengesahan individu — menandakan banyak permohonan Dibayar
+     * dengan satu rujukan kongsi akan mengelirukan rekod kewangan (AGENTS.md §5). Tolak selamat
+     * untuk pukal kerana ia mengembalikan baki tanpa pergerakan wang sebenar.
+     */
+    public function bulkReject(Request $request, AffiliateWalletService $wallet): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'reason' => ['required', 'string', 'max:500'],
+            'confirm' => ['accepted'],
+        ], ['confirm.accepted' => 'Sila sahkan penolakan pukal ini.']);
+
+        $admin = Auth::guard('admin')->user();
+        $ids = array_unique(array_map('intval', $data['ids']));
+        $done = 0;
+        foreach (AffiliateWithdrawal::query()->whereIn('id', $ids)->where('status', AffiliateWithdrawal::STATUS_REQUESTED)->get() as $withdrawal) {
+            $wallet->reject($admin, $withdrawal, $data['reason']);
+            $done++;
+        }
+        $skipped = count($ids) - $done;
+
+        $message = "{$done} withdrawal ditolak dan baki dikembalikan.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} dilangkau (bukan berstatus 'Dalam proses' lagi).";
+        }
+
+        return back()->with('status', $message);
+    }
 }
