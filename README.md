@@ -27,8 +27,9 @@ Jangan membina berdasarkan andaian, chat, draf tidak diluluskan atau versi lapuk
   ProjectContent, Communication, Cms, Audit, Analytics, Affiliate, Partnership.
 - **Adapter luaran** (`app/Adapters/*`): Billplz (bayaran), Resend (e-mel), Email (OTP). Adapter
   tidak menentukan kebenaran perniagaan — lihat `AGENTS.md` §3.
-- **Runtime:** PHP 8.2+, Laravel 12, SQLite (fail tunggal — lihat
-  `docs/OWNER_DECISIONS_2026_09_25.md` #2/#4), Blade + Tailwind CSS + Alpine.js + Vite.
+- **Runtime:** PHP 8.2+, Laravel 12, Blade + Tailwind CSS + Alpine.js + Vite. Pangkalan data:
+  **MySQL/MariaDB** di production (lihat `docs/OWNER_DECISIONS_2026_09_25.md` #4); SQLite (fail
+  tunggal) untuk pembangunan tempatan yang lebih ringkas.
 
 ## Pemasangan pembangunan tempatan
 

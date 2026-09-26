@@ -13,7 +13,7 @@ mengatasi keputusan/andaian lama yang bercanggah dalam dokumen tersebut.
 | 1 | Modul Partnership/Pelabur di luar skop `NATNETWORK_V1_MASTER_SPECIFICATION.md` asal | **Diluluskan.** MS terkini Owner telah mengiktiraf modul ini. Semakan undang-undang draf terma pelabur diabaikan buat masa ini (program kekal `program_enabled=false` sehingga diaktifkan admin). | Direkodkan sahaja — tiada perubahan kod diperlukan |
 | 2 | Rekod sandbox (mod ujian Billplz) boleh bercampur dengan rekod production pada quotation/order/projek | Pisahkan rekod sandbox dan production sepenuhnya. Rekod sandbox boleh dipadam oleh admin; rekod production tidak boleh dipadam sama sekali. Guna pendekatan paling mudah untuk kegunaan folder tempatan dan cloud. | **Dilaksanakan** — lihat "Perubahan teknikal" |
 | 3 | Quotation lama tidak dibatalkan apabila spesifikasi baharu diluluskan; reset Start Project tidak jelas | Reset spec hanya dibenarkan **sebelum bayaran dibuat**. Apabila reset (eksplisit atau melalui kelulusan spesifikasi baharu), semua rekod spec lama (quotation, slot hold, Master Specification, Project Request) **dipadam**, bukan sekadar dikunci/dibatalkan. Invois yang telah dikeluarkan kekal VOID (rekod kewangan tidak dipadam). | **Dilaksanakan** |
-| 4 | Stack deploy (PHP/DB) tidak konsisten dengan baseline lama; tiada sandaran sebelum migrasi | Ikut pendekatan deploy yang **mudah**; **sandaran wajib sebelum migrasi**. | **Dilaksanakan** — SQLite dikekalkan (fail tunggal, mudah untuk folder tempatan & cloud), `deploy.sh` kini membuat sandaran automatik sebelum `migrate --force` |
+| 4 | Stack deploy (PHP/DB) tidak konsisten dengan baseline lama; tiada sandaran sebelum migrasi | Ikut pendekatan deploy yang **mudah**; **sandaran wajib sebelum migrasi**. | **Dilaksanakan** — server production sebenar mengekalkan **MySQL/MariaDB** sedia ada (disahkan semasa deploy 26 Sep 2026: `DB_CONNECTION=mysql` dalam `.env`); dev tempatan boleh guna SQLite. `deploy.sh` mengesan `DB_CONNECTION` dan membuat sandaran `mysqldump` (atau salin fail SQLite) secara automatik sebelum `migrate --force` |
 | 5 | Admin impersonation (log masuk sebagai ahli/affiliate/partner) tiada dalam spesifikasi asal | Admin boleh log masuk sebagai ahli/pelanggan/affiliate/partner **READONLY sahaja** — tiada sebarang tindakan (bukan hanya bayaran/kelulusan) dibenarkan bagi pihak pengguna. | **Dilaksanakan** |
 | 6 | Order boleh disahkan tanpa slot hold dalam kes tepi | Order **wajib** ada slot yang diluluskan/ditempah. Kapasiti: 1 slot lungguh maksimum **3 projek** (boleh diubah admin — sudah wujud sebagai `max_active_projects`). | **Dilaksanakan** — order tidak lagi disahkan secara senyap tanpa slot; direkod sebagai `SCHEDULING_EXCEPTION_NO_SLOT` untuk tindakan admin |
 | 7 | Nombor refund guna prefix `NAT-RF-`, tidak sepadan dengan MS §9 (`NAT-REF-`) | Pastikan setiap jenis nombor rujukan berbeza dan mudah dikenali. | **Dilaksanakan** — dibetulkan kepada `NAT-REF-`/`TEST-REF-` |
@@ -49,8 +49,12 @@ mengatasi keputusan/andaian lama yang bercanggah dalam dokumen tersebut.
   laluan terpilih. Percubaan disekat direkod sebagai `IMPERSONATED_ACTION_BLOCKED`.
 
 ### Deploy (#4)
-- `deploy/deploy.sh` membuat sandaran fail SQLite (`storage/app/backups/`) sebelum `migrate --force`,
-  dengan pengekalan 30 hari.
+- `deploy/deploy.sh` mengesan `DB_CONNECTION` dalam `.env` semasa deploy dan membuat sandaran
+  sebelum `migrate --force`: `mysqldump`/`mariadb-dump` (dimampatkan `.gz`) jika MySQL/MariaDB
+  (kes production sebenar), atau salin fail jika SQLite (dev tempatan). Disimpan dalam
+  `storage/app/backups/` dengan pengekalan 30 hari. **Dibetulkan 26 Sep 2026** selepas deploy
+  pertama mendedahkan production sebenarnya guna MySQL, bukan SQLite seperti andaian awal —
+  sandaran asal (salin fail SQLite kosong) tidak melindungi data sebenar.
 
 ## Perubahan dokumentasi (#10)
 - `README.md` digantikan dengan penerangan projek sebenar (bukan README lalai Laravel).
