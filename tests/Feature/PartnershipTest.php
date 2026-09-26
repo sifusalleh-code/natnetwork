@@ -51,7 +51,10 @@ class PartnershipTest extends TestCase
         $admin = $this->admin();
 
         // Langkah 1–2: halaman daftar papar terma; butang Daftar bergantung pada tanda setuju
-        $this->get(route('partner.register'))->assertOk()->assertSee('Terma &amp; syarat', false)->assertSee(config('partnership_terms.terms')[0]['title'])->assertSee(':disabled="! agree"', false);
+        $this->get(route('partner.register'))->assertOk()->assertSee('Terma &amp; syarat', false)->assertSee(config('partnership_terms.terms')[0]['title'])->assertSee(':disabled="! agree"', false)
+            // Langkah 1 (premium): modal minimum daripada tetapan, foto & sokongan syarikat.
+            ->assertSee('RM5,000')->assertSee('Sokongan penuh daripada pihak syarikat')->assertSee('images/partnership/partnership-hero.webp');
+        $this->assertFileExists(public_path('images/partnership/partnership-hero.webp'));
 
         // Langkah 3: persetujuan terma disemak di pelayan; modal minimum RM5,000
         $this->post(route('partner.register.send'), array_merge($this->form(), ['agree' => '']))->assertSessionHasErrors('agree');
