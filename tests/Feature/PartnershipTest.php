@@ -98,8 +98,21 @@ class PartnershipTest extends TestCase
         // Bayaran berjaya melalui callback Billplz → modal aktif → langkah 4 (lengkapkan profil)
         Http::fake(['www.billplz.com/api/v3/bills' => Http::sequence()->push(['id' => 'capbill', 'url' => 'https://www.billplz.com/bills/capbill'])->push(['id' => 'salebill', 'url' => 'https://www.billplz.com/bills/salebill'])]);
         $this->post(route('partner.pay', $invoice))->assertRedirect('https://www.billplz.com/bills/capbill');
+        // Kembali dari Billplz sebelum callback: halaman status Partnership, belum dianggap berjaya.
+        $redirect = ['id' => 'capbill', 'paid' => 'true', 'paid_at' => '2026-09-24 10:00:00 +0800', 'transaction_id' => 'T1', 'transaction_status' => 'completed'];
+        $redirect['x_signature'] = app(BillplzClient::class)->redirectSignature($redirect, 'S-prod');
+        $query = '?'.http_build_query(['billplz' => $redirect]);
+        $this->get(route('billing.billplz.return').$query)->assertOk()->assertSee('Apa seterusnya?')->assertSee('Bayaran sedang diproses dan disahkan.')
+            ->assertSee('images/partnership/partnership-success.webp')->assertDontSee('TEST-RCP')->assertDontSee('NAT-RCP');
+        $this->getJson(route('billing.billplz.status').$query)->assertJson(['found' => true, 'status' => 'PENDING', 'receipt' => null]);
         $this->billplzCallback('capbill', 600000);
         $this->assertSame(PartnerCapital::ACTIVE, $capA->fresh()->status);
+        // Selepas callback disahkan: status Dibayar + resit lengkap (salinan direkod dalam portal Partnership).
+        $receipt = \App\Engines\Billing\Models\Receipt::query()->where('invoice_id', $invoice->id)->sole();
+        $this->getJson(route('billing.billplz.status').$query)->assertJson(['status' => 'PAID', 'invoice' => ['amount_paid' => '6,000.00'], 'receipt' => ['number' => $receipt->number, 'amount' => '6,000.00'], 'bill_id' => 'capbill']);
+        $this->get(route('billing.billplz.return').$query)->assertOk()->assertSee($receipt->number)
+            ->assertSee('RESIT BAYARAN')->assertSee('Salinan resit ini telah direkod dalam')->assertSee('portal Partnership')->assertSee('Lengkapkan Profil')->assertDontSee('Teruskan ke Dashboard');
+        $this->get(route('partner.invoice', $invoice))->assertOk()->assertSee($receipt->number);
         $this->assertDatabaseCount('partner_pool_entries', 0);
         $this->get(route('partner.dashboard'))->assertRedirect(route('partner.onboarding'));
         $this->get(route('partner.onboarding'))->assertSee('Lengkapkan profil');
