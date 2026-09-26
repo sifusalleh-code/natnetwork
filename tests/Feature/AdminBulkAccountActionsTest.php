@@ -4,9 +4,13 @@ namespace Tests\Feature;
 
 use App\Engines\Affiliate\Models\Affiliate;
 use App\Engines\Affiliate\Models\AffiliateWithdrawal;
+use App\Engines\Billing\Models\Invoice;
+use App\Engines\Billing\Services\InvoiceService;
 use App\Engines\Identity\Models\Admin;
 use App\Engines\Partnership\Models\Partner;
 use App\Engines\Partnership\Models\PartnerCapital;
+use App\Engines\Sales\Models\Order;
+use App\Engines\Sales\Models\Quotation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -48,6 +52,37 @@ class AdminBulkAccountActionsTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $withHistory->id]);
         $this->assertDatabaseMissing('users', ['id' => $empty->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'ACCOUNT_DELETED']);
+    }
+
+    public function test_bulk_delete_purges_sandbox_footprint_then_deletes_client(): void
+    {
+        $admin = $this->admin();
+
+        // Pelanggan "sandbox": perjalanan Start Project penuh tapi ditanda sandbox (ujian Billplz).
+        $sandboxClient = $this->portalReadyClient();
+        $order = Order::query()->where('customer_user_id', $sandboxClient->id)->sole();
+        $quotation = Quotation::query()->findOrFail($order->quotation_id);
+        $quotation->forceFill(['is_sandbox' => true])->save();
+        $order->forceFill(['is_sandbox' => true])->save();
+        $invoice = app(InvoiceService::class)->issue('DEPOSIT', ['name' => $sandboxClient->name, 'email' => $sandboxClient->email], [
+            ['description' => 'Deposit ujian', 'quantity' => 1, 'unit_price' => '500.00'],
+        ], $sandboxClient, null, 'Quotation', $quotation->id);
+        $invoice->forceFill(['is_sandbox' => true])->save();
+
+        // Pelanggan production sebenar — mesti kekal walaupun cuba dipadam serentak.
+        $productionClient = $this->portalReadyClient();
+
+        $response = $this->actingAs($admin, 'admin')->post(route('admin.clients.bulk'), ['ids' => [$sandboxClient->id, $productionClient->id], 'action' => 'delete', 'confirm' => '1']);
+        $response->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('users', ['id' => $sandboxClient->id]);
+        $this->assertDatabaseMissing('quotations', ['id' => $quotation->id]);
+        $this->assertDatabaseMissing('orders', ['id' => $order->id]);
+        $this->assertDatabaseMissing('invoices', ['id' => $invoice->id]);
+
+        // Production tidak disentuh.
+        $this->assertDatabaseHas('users', ['id' => $productionClient->id]);
+        $this->assertDatabaseHas('orders', ['customer_user_id' => $productionClient->id]);
     }
 
     public function test_bulk_suspend_and_delete_affiliates(): void
