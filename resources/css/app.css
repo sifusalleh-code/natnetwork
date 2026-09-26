@@ -1612,7 +1612,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .ppay-meta dd, .ppay-parties dd { grid-column: 3; margin: 0; color: #0d2240; overflow-wrap: anywhere; }
 .ppay-badge { display: inline-block; padding: .05rem .55rem; color: #fff; background: #0b6fe0; border-radius: .35rem; font-size: .8rem; font-weight: 700; }
 .ppay-badge.is-paid { background: #15803d; } .ppay-badge.is-void { background: #6b7280; }
-.ppay-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .8rem 0; }
+.ppay-parties { display: grid; grid-template-columns: minmax(0, 1fr); padding: .8rem 0; }
 .ppay-parties dl { margin: 0; padding: 0 .4rem; }
 .ppay-parties dl + dl { padding-left: 1.2rem; border-left: 1px solid #e6eef7; }
 .ppay-part-title { margin: 0 0 .35rem; color: #0d2240; font-size: .92rem; font-weight: 800; }

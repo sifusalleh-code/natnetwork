@@ -68,12 +68,6 @@
                         <div><dt>Emel</dt><dd>{{ $cust['email'] ?? $partner->email }}</dd></div>
                         <div><dt>No. Telefon</dt><dd>{{ $cust['phone'] ?? $partner->phone }}</dd></div>
                     </dl>
-                    <dl>
-                        <p class="ppay-part-title">Maklumat Perkhidmatan</p>
-                        <div><dt>Jenis Perkhidmatan</dt><dd>Penyediaan perkhidmatan hosting dan domain</dd></div>
-                        <div><dt>Tempoh</dt><dd>2 Tahun</dd></div>
-                        <div><dt>Tujuan</dt><dd>Modal penyediaan perkhidmatan untuk Program Partnership</dd></div>
-                    </dl>
                 </div>
                 <div class="ppay-table-wrap">
                     <table class="ppay-table">
