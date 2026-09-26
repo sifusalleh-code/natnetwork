@@ -86,7 +86,13 @@ class PartnershipTest extends TestCase
         // Belum bayar → dashboard & menu disekat, kekal di langkah bayaran
         $this->get(route('partner.dashboard'))->assertRedirect(route('partner.onboarding'));
         $this->get(route('partner.returns'))->assertRedirect(route('partner.onboarding'));
-        $this->get(route('partner.onboarding'))->assertOk()->assertSee('Bayaran modal')->assertSee('Bayar RM 6,000.00');
+        $this->get(route('partner.onboarding'))->assertOk()->assertSee('Bayaran modal')->assertSee('Bayar RM 6,000.00')
+            // Invois lengkap dengan maklumat sebenar: penjual (config company), penerima, perkara baharu & jumlah ikut amaun diisi.
+            ->assertSee('INVOIS')->assertSee(config('company.registration_number'))->assertSee('Ali Partner')->assertSee('ali@example.test')
+            ->assertSee('Modal penyediaan perkhidmatan domain/hosting untuk pelanggan')->assertSee('Belum Dibayar')->assertSee('RM 6,000.00')
+            ->assertSee('Penyediaan Perkhidmatan Hosting &amp; Domain', false)->assertSee('images/partnership/partnership-hosting.webp');
+        $this->assertStringStartsWith('Modal penyediaan perkhidmatan domain/hosting untuk pelanggan (', Invoice::query()->where('type', 'PARTNER_CAPITAL')->latest('id')->firstOrFail()->items_snapshot[0]['description']);
+        $this->assertFileExists(public_path('images/partnership/partnership-hosting.webp'));
         $this->post(route('partner.profile.complete'), $this->profile())->assertSessionHasErrors('profile');
 
         // Bayaran berjaya melalui callback Billplz → modal aktif → langkah 4 (lengkapkan profil)

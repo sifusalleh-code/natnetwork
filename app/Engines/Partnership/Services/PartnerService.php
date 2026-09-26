@@ -133,7 +133,7 @@ class PartnerService
             ]);
             $invoice = $this->invoices->issue('PARTNER_CAPITAL', [
                 'name' => $partner->company_name ?: $partner->name, 'email' => $partner->email, 'phone' => $partner->phone, 'company' => $partner->company_name,
-            ], [['description' => 'Modal Program Partnership '.$contribution->number, 'quantity' => 1, 'unit_price' => $contribution->amount]], null, null, 'PartnerCapital', $contribution->id);
+            ], [['description' => 'Modal penyediaan perkhidmatan domain/hosting untuk pelanggan ('.$contribution->number.')', 'quantity' => 1, 'unit_price' => $contribution->amount]], null, null, 'PartnerCapital', $contribution->id);
             $contribution->forceFill(['invoice_id' => $invoice->id, 'is_sandbox' => $invoice->is_sandbox])->save();
             $this->audit->record('PARTNER_CAPITAL_CREATED', $partner, $contribution, null, ['amount' => $contribution->amount, 'invoice' => $invoice->number]);
 
