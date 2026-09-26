@@ -88,19 +88,16 @@ class PartnerController extends Controller
         $ids = array_unique(array_map('intval', $data['ids']));
         $done = 0;
         $skipped = 0;
+        $blockers = [];
 
         if ($data['action'] === 'delete') {
-            // Modal SANDBOX partner ini dibersih dahulu (Keputusan #2) supaya partner yang HANYA
-            // ada modal ujian benar-benar padam, bukan dilangkau.
-            foreach ($ids as $id) {
-                $this->purgePartnerSandboxFootprint($id);
-            }
             $result = $this->deleteEligible(Partner::class, $ids);
             foreach ($result['deleted'] as $id) {
                 $audit->record('ACCOUNT_DELETED', $admin, null, null, ['model' => 'Partner', 'id' => $id]);
             }
             $done = count($result['deleted']);
             $skipped = count($result['skipped']);
+            $blockers = $result['blockers'];
         } else {
             $decision = $data['action'] === 'activate' ? 'approve' : $data['action'];
             foreach (Partner::query()->whereIn('id', $ids)->get() as $partner) {
@@ -116,6 +113,9 @@ class PartnerController extends Controller
         $message = "{$done} partner berjaya dikemas kini.";
         if ($skipped > 0) {
             $message .= " {$skipped} partner dilangkau (".($data['action'] === 'delete' ? 'mempunyai rekod modal/earning/payout berkaitan' : 'sebab wajib diisi untuk tindakan ini').').';
+            if ($blockers !== []) {
+                $message .= ' Disekat oleh jadual: '.implode(', ', $blockers).'.';
+            }
         }
 
         return back()->with('status', $message);

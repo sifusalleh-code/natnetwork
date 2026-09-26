@@ -113,6 +113,44 @@ class AdminBulkAccountActionsTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $legacyClient->id]);
     }
 
+    public function test_bulk_delete_client_with_only_pre_payment_records_succeeds(): void
+    {
+        // Senario tepat daripada production (26 Sep 2026): tiada invois, quotation REVIEW REQUIRED
+        // (bukan sandbox), beberapa sesi Builder, spesifikasi diluluskan, cabaran OTP.
+        $admin = $this->admin();
+        $client = User::factory()->create();
+        $builder = \App\Engines\Sales\Models\BuilderSession::query()->create(['entry_path' => 'GUIDED', 'user_id' => $client->id]);
+        \App\Engines\Sales\Models\BuilderSession::query()->create(['entry_path' => 'GUIDED', 'user_id' => $client->id]); // sesi lain yang ditinggalkan
+        $request = \App\Engines\Sales\Models\ProjectRequest::query()->create(['customer_user_id' => $client->id, 'builder_session_id' => $builder->id, 'status' => 'DRAFT', 'requirement_snapshot' => []]);
+        $spec = \App\Engines\Sales\Models\MasterSpecification::query()->create(['project_request_id' => $request->id, 'version' => 1, 'status' => 'APPROVED', 'requirement_snapshot' => [], 'specification_snapshot' => [], 'approved_by_user_id' => $client->id, 'approved_at' => now()]);
+        $quotation = Quotation::query()->create(['project_request_id' => $request->id, 'master_specification_id' => $spec->id, 'status' => Quotation::STATUS_REVIEW_REQUIRED, 'price_snapshot' => []]);
+        \App\Engines\Identity\Models\EmailOtpChallenge::query()->create(['user_id' => $client->id, 'email' => $client->email, 'purpose' => 'CLIENT_LOGIN', 'code_hash' => 'x', 'attempts' => 0, 'sent_at' => now(), 'expires_at' => now()->addMinutes(10)]);
+
+        $this->actingAs($admin, 'admin')->post(route('admin.clients.bulk'), ['ids' => [$client->id], 'action' => 'delete', 'confirm' => '1'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('users', ['id' => $client->id]);
+        $this->assertDatabaseMissing('quotations', ['id' => $quotation->id]);
+        $this->assertDatabaseMissing('project_requests', ['id' => $request->id]);
+        $this->assertDatabaseMissing('builder_sessions', ['user_id' => $client->id]);
+        $this->assertDatabaseMissing('email_otp_challenges', ['email' => $client->email]);
+    }
+
+    public function test_skipped_client_keeps_all_records_intact(): void
+    {
+        // Pelanggan dengan quotation ACCEPTED + order production: dilangkau, dan TIADA apa-apa
+        // rekodnya dibersihkan (transaksi dibatalkan sepenuhnya).
+        $admin = $this->admin();
+        $client = $this->portalReadyClient();
+        $orphanSession = \App\Engines\Sales\Models\BuilderSession::query()->create(['entry_path' => 'GUIDED', 'user_id' => $client->id]);
+
+        $this->actingAs($admin, 'admin')->post(route('admin.clients.bulk'), ['ids' => [$client->id], 'action' => 'delete', 'confirm' => '1'])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '1 akaun dilangkau'));
+
+        $this->assertDatabaseHas('users', ['id' => $client->id]);
+        $this->assertDatabaseHas('builder_sessions', ['id' => $orphanSession->id]);
+        $this->assertDatabaseHas('orders', ['customer_user_id' => $client->id]);
+    }
+
     public function test_bulk_suspend_and_delete_affiliates(): void
     {
         $admin = $this->admin();
