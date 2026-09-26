@@ -169,6 +169,7 @@ Route::prefix('partner')->name('partner.')->group(function (): void {
 Route::prefix('billing/billplz')->name('billing.billplz.')->group(function (): void {
     Route::post('/callback', [BillplzController::class, 'callback'])->middleware('throttle:120,1')->name('callback');
     Route::get('/return', [BillplzController::class, 'return'])->name('return');
+    Route::get('/status', [BillplzController::class, 'status'])->middleware('throttle:60,1')->name('status');
 });
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
