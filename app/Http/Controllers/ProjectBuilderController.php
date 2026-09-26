@@ -237,7 +237,7 @@ class ProjectBuilderController extends Controller
         return redirect()->route('builder.start')->with('builder_status', 'Emel anda telah disahkan. Soal jawab Start Project boleh bermula.');
     }
 
-    /** Reset Start Project (contoh: selepas bayaran gagal). Maklumat asas dikekalkan untuk Start Project baharu. */
+    /** Reset Start Project (sebelum bayaran): semua maklumat Start Project dipadam; identiti (akaun) kekal untuk mula semula. */
     public function reset(Request $request, BuilderSessionService $builder, StartProjectResetService $resets): RedirectResponse
     {
         $request->validate(['confirm' => ['accepted']], ['confirm.accepted' => 'Sila sahkan anda mahu reset Start Project.']);
@@ -250,7 +250,7 @@ class ProjectBuilderController extends Controller
         $request->session()->forget([BuilderSessionService::SESSION_KEY, 'natnetwork_builder_step']);
         $builder->linkClient($builder->current($request), $client);
 
-        return redirect()->route('builder.start')->with('builder_status', 'Start Project telah di-reset. Bil lama dibatalkan dan anda boleh mula semula.');
+        return redirect()->route('builder.start')->with('builder_status', 'Start Project telah di-reset. Semua maklumat telah dipadam — sila mula semula.');
     }
 
     /** Projek terdahulu telah disahkan (Order): mula Start Project baharu tanpa menjejaskan rekod lama. */

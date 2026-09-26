@@ -9,17 +9,29 @@ use App\Engines\Sales\Services\BuilderSessionService;
 use App\Engines\Sales\Services\MasterSpecificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class MasterSpecificationController extends Controller
 {
-    public function show(Request $request, BuilderSessionService $builderService, MasterSpecificationService $specifications): View
+    public function show(Request $request, BuilderSessionService $builderService, MasterSpecificationService $specifications): View|RedirectResponse
     {
         $builder = $builderService->current($request);
-        $specifications->assertOwner($builder, $request->user('client'));
-        $requestRecord = ProjectRequest::query()->where('builder_session_id', $builder->id)->first();
+        $client = $request->user('client');
+        $specifications->assertOwner($builder, $client);
+        $latest = fn () => ProjectRequest::query()->where('builder_session_id', $builder->id)->first()?->specifications()->latest('version')->first();
 
-        return view('sales.specification', ['builderSession' => $builder, 'requestRecord' => $requestRecord, 'specification' => $requestRecord?->specifications()->latest('version')->first()]);
+        // Dijana automatik: tiada spec lagi, atau draf dikemas kini ikut jawapan Builder terkini. Versi diluluskan tidak disentuh.
+        $specification = $latest();
+        if (! $specification || $specification->status === MasterSpecification::STATUS_DRAFT) {
+            try {
+                $specification = $specifications->generateDraft($builder, $client);
+            } catch (ValidationException $e) {
+                return redirect()->route('builder.start')->with('builder_status', collect($e->errors())->flatten()->first());
+            }
+        }
+
+        return view('sales.specification', ['builderSession' => $builder, 'specification' => $specification]);
     }
 
     public function generate(Request $request, BuilderSessionService $builderService, MasterSpecificationService $specifications): RedirectResponse
