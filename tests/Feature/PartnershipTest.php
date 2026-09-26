@@ -53,8 +53,14 @@ class PartnershipTest extends TestCase
         // Langkah 1–2: halaman daftar papar terma; butang Daftar bergantung pada tanda setuju
         $this->get(route('partner.register'))->assertOk()->assertSee('Terma &amp; syarat', false)->assertSee(config('partnership_terms.terms')[0]['title'])->assertSee(':disabled="! agree"', false)
             // Langkah 1 (premium): modal minimum daripada tetapan, foto & sokongan syarikat.
-            ->assertSee('RM5,000')->assertSee('Sokongan penuh daripada pihak syarikat')->assertSee('images/partnership/partnership-hero.webp');
-        $this->assertFileExists(public_path('images/partnership/partnership-hero.webp'));
+            ->assertSee('RM5,000')->assertSee('Sokongan penuh daripada pihak syarikat')->assertSee('images/partnership/partnership-hero.webp')
+            // Langkah 2 (premium): terma Owner v1.0 lengkap + panel "Kenapa perlu baca terma ini?".
+            ->assertSee('Terma dan Syarat Partnership')->assertSee('(versi 1.0)', false)->assertSee('Kenapa perlu baca terma ini?')->assertSee('images/partnership/partnership-terms.webp')
+            ->assertSee('mengumpul modal RM100,000')->assertSee('selama 2 tahun dari tarikh daftar')->assertSee('Pengeluaran keuntungan');
+        $this->assertCount(9, config('partnership_terms.terms'));
+        foreach (['partnership-hero.webp', 'partnership-terms.webp'] as $img) {
+            $this->assertFileExists(public_path('images/partnership/'.$img));
+        }
 
         // Langkah 3: persetujuan terma disemak di pelayan; modal minimum RM5,000
         $this->post(route('partner.register.send'), array_merge($this->form(), ['agree' => '']))->assertSessionHasErrors('agree');
