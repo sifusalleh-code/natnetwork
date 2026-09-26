@@ -125,6 +125,15 @@ class ProjectBuilderFlowTest extends TestCase
         foreach (['Website Development', 'E-Commerce', 'Custom Web Applications', 'AI &amp; Automation', 'System/API Integration', 'Maintenance &amp; Support'] as $category) {
             $this->assertStringContainsString($category, $html);
         }
+        // Spec, kesesuaian dan add-on (boleh tick) berada dalam langkah "Model" (langkah 1), selepas dropdown pakej.
+        $model = substr($html, strpos($html, 'id="bw-step-0"'), strpos($html, 'id="bw-step-1"') - strpos($html, 'id="bw-step-0"'));
+        foreach (['id="service_package_id"', 'Spec pakej', 'Sesuai untuk:', 'aria-label="Add-on pakej"', '@change="toggleAddon(a)"'] as $needle) {
+            $this->assertStringContainsString($needle, $model);
+        }
+        $this->assertStringNotContainsString('Fungsi yang sudah termasuk', $html);
+        // Setiap pakej membawa servis (kategori) & add-on sendiri untuk penapisan dropdown dan senarai add-on.
+        $data = collect(ServicePackage::query()->where('is_active', true)->with('service')->get())->pluck('service.slug')->unique()->sort()->values()->all();
+        $this->assertSame(['ai-automation', 'custom-web-applications', 'e-commerce', 'maintenance-support', 'system-api-integration', 'website-development'], $data);
 
         $this->assertStringNotContainsString('Julat bajet', $html);
         $this->assertStringContainsString('Anggaran kos projek', $html);

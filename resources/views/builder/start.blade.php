@@ -137,15 +137,6 @@
                         <li><span><b x-text="selectedPackage()?.name"></b> <small x-text="selectedPackage()?.label"></small></span><button type="button" class="bw-link" @click="changePackage()">Tukar pakej</button></li>
                         <template x-for="a in selectedAddons()" :key="a.id"><li><span>Add-on: <b x-text="a.name"></b> <small x-text="a.label"></small></span><button type="button" class="bw-link is-remove" @click="removeAddon(a.id)" :aria-label="'Buang add-on ' + a.name">Buang</button></li></template>
                     </ul>
-                    {{-- Sama seperti halaman Services: senarai ini termasuk dalam pakej — maklumat sahaja, tiada tick diperlukan. --}}
-                    <template x-if="selectedPackage()?.inclusions?.length">
-                        <ul class="pkg-features bw-cost-includes">
-                            <template x-for="inc in selectedPackage().inclusions" :key="inc">
-                                <li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span x-text="inc"></span></li>
-                            </template>
-                        </ul>
-                    </template>
-                    <p class="pkg-suit" x-show="selectedPackage()?.useCase" x-cloak><b>Sesuai untuk:</b> <span x-text="selectedPackage()?.useCase"></span></p>
                     <p class="bw-muted bw-cost-note">Harga daripada katalog semasa. Harga bertanda "+" ialah harga permulaan; jumlah dimuktamadkan dalam quotation selepas Master Specification diluluskan.</p>
                 </div>
 
@@ -222,13 +213,38 @@
                                     {{-- Pakej: selepas jenis projek, ditapis mengikut jenis projek. Harga dipapar terus. --}}
                                     <div class="bw-field" x-show="isDirect || answers.project_type" @unless ($isDirect || ($answers['project_type'] ?? null)) x-cloak @endunless>
                                         <label class="bw-label" for="service_package_id">Pilih pakej <span class="bw-req">*</span></label>
-                                        <p class="bw-muted">Pakej disesuaikan dengan jenis projek. Fungsi yang sudah termasuk dalam pakej tidak dicaj.</p>
+                                        <p class="bw-muted">Hanya pakej dalam kategori dipilih dipaparkan.</p>
                                         <select id="service_package_id" name="service_package_id" class="bw-input" x-model="packageId">
                                             <option value="">Pilih pakej</option>
                                             <template x-for="p in availablePackages()" :key="p.id"><option :value="p.id" x-text="p.name + ' · ' + p.label" :selected="p.id === packageId"></option></template>
                                         </select>
                                         <p class="bw-error" x-show="errors.service_package_id" x-text="errors.service_package_id" x-cloak></p>
                                         @error('service_package_id')<p class="bw-error">{{ $message }}</p>@enderror
+                                    </div>
+                                    {{-- Spec + kesesuaian pakej dipilih (maklumat sahaja), diikuti add-on pakej tersebut (boleh ditick). --}}
+                                    <div class="bw-field bw-pkg-detail" x-show="selectedPackage()" x-cloak>
+                                        <p class="bw-label">Spec pakej <b x-text="selectedPackage()?.name"></b></p>
+                                        <ul class="pkg-features bw-cost-includes" x-show="selectedPackage()?.inclusions?.length">
+                                            <template x-for="inc in (selectedPackage()?.inclusions || [])" :key="inc">
+                                                <li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span x-text="inc"></span></li>
+                                            </template>
+                                        </ul>
+                                        <p class="pkg-suit" x-show="selectedPackage()?.useCase"><b>Sesuai untuk:</b> <span x-text="selectedPackage()?.useCase"></span></p>
+
+                                        <p class="bw-label">Add-on <span class="bw-muted">(pilihan — tick untuk tambah)</span></p>
+                                        <div class="bw-addons" role="group" aria-label="Add-on pakej">
+                                            <template x-for="a in pkgAddons()" :key="a.id">
+                                                <label class="bw-addon" :class="{ 'is-on': isAddonOn(a) }">
+                                                    <input type="checkbox" :checked="isAddonOn(a)" @change="toggleAddon(a)">
+                                                    <span class="bw-addon-body">
+                                                        <b x-text="a.name"></b>
+                                                        <em class="bw-addon-note" x-show="a.monthly">Caj bulanan — tidak dicampur dalam jumlah kos projek</em>
+                                                    </span>
+                                                    <span class="bw-addon-price" x-text="'+ ' + a.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                        <p class="bw-muted" x-show="! pkgAddons().length">Tiada add-on untuk pakej ini.</p>
                                     </div>
                                 @endif
 
@@ -391,7 +407,7 @@ function builderWizard(cfg) {
         ...cfg, answers, errors: {}, uploadError: {}, uploading: null, busy: false, notice: '',
         packageId: cfg.packageId ? String(cfg.packageId) : '', addonIds: (cfg.addonIds || []).map(String),
         availablePackages() {
-            return this.answers.project_type ? this.packageData.filter(p => p.service === this.answers.project_type || p.id === String(this.packageId)) : this.packageData;
+            return this.answers.project_type ? this.packageData.filter(p => p.service === this.answers.project_type) : this.packageData;
         },
         selectedPackage() { return this.packageData.find(p => p.id === String(this.packageId)) || null; },
         isAddonOn(a) { return this.addonIds.includes(a.id); },
@@ -404,7 +420,15 @@ function builderWizard(cfg) {
         removeAddon(id) { const a = this.pkgAddons().find(x => x.id === id); if (a && this.isAddonOn(a)) this.toggleAddon(a); this.request(Math.max(this.reached, this.step)); },
         changePackage() { this.goTo(0); this.$nextTick(() => document.getElementById(this.isDirect ? 'service_package_id' : 'service_package_id_g')?.focus()); },
         reached: Math.max(cfg.step, 0),
-        init() { this.$nextTick(() => this.scrollFlow()); },
+        init() {
+            // Pakej pra-pilih (cth. dari Services) tanpa kategori: kategori ikut servis pakej tersebut.
+            if (this.selectedPackage() && ! this.answers.project_type) this.answers.project_type = this.selectedPackage().service;
+            // Tukar kategori: pakej dari kategori lain dikosongkan (dropdown hanya pakej kategori dipilih).
+            this.$watch('answers.project_type', v => { if (this.selectedPackage() && this.selectedPackage().service !== v) this.packageId = ''; });
+            // Tukar pakej: tick add-on dikosongkan (add-on & harga berbeza ikut pakej).
+            this.$watch('packageId', () => { this.addonIds = []; });
+            this.$nextTick(() => this.scrollFlow());
+        },
         current() { return this.steps[Math.min(this.step, last)]; },
         visible(code) {
             const q = this.questions[code]; if (! q || ! q.condition) return true;
