@@ -40,7 +40,8 @@ class ProjectBuilderFlowTest extends TestCase
         $this->seed();
         $package = ServicePackage::query()->where('slug', 'landing-page')->firstOrFail();
 
-        $this->get(route('builder.start', ['package' => $package->slug]))->assertOk()->assertSee('Pakej pilihan anda')->assertSee('Landing Page');
+        // Spec/inclusions pakej dipaparkan terus (sama seperti halaman Services), tanpa perlu ditick.
+        $this->get(route('builder.start', ['package' => $package->slug]))->assertOk()->assertSee('Pakej pilihan anda')->assertSee('Landing Page')->assertSee('Hero section')->assertSee('Basic on-page SEO');
         $this->post(route('builder.entry'), ['entry_path' => 'DIRECT_SELECTION', 'package' => $package->slug])->assertRedirect(route('builder.start'));
 
         $this->assertDatabaseHas('builder_sessions', ['entry_path' => 'DIRECT_SELECTION', 'service_package_id' => $package->id]);

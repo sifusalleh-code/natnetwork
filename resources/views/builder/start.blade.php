@@ -24,7 +24,7 @@
         'isDirect' => $isDirect,
         'packageId' => old('service_package_id', $builderSession->service_package_id),
         'packages' => $services->flatMap(fn ($s) => $s->packages)->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->price_label]),
-        'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name,
+        'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name, 'inclusions' => $p->inclusions ?? [],
             'addons' => $p->packageAddons->filter(fn ($pa) => $pa->addon && $pa->addon->is_active)->map(fn ($pa) => ['id' => (string) $pa->addon_id, 'slug' => $pa->addon->slug, 'name' => $pa->displayName(), 'label' => $pa->price_label, 'cents' => $pa->price_amount !== null ? (int) round((float) $pa->price_amount * 100) : null, 'monthly' => $pa->price_type === 'monthly'])->values()]))->values(),
         'addonCatalog' => $addons->map(fn ($a) => ['id' => (string) $a->id, 'slug' => $a->slug, 'name' => $a->name, 'label' => $a->price_label, 'cents' => $a->price_amount !== null ? (int) round((float) $a->price_amount * 100) : null, 'monthly' => $a->price_type === 'monthly'])->values(),
         'addonIds' => array_map('strval', old('addon_ids', $builderSession->addon_ids ?? [])),
@@ -58,7 +58,17 @@
         <section class="bw-wrap bw-entry" aria-label="Pilih cara mula">
             @if ($selectedPackage)
                 <article class="bw-card bw-selected">
-                    <div><p class="bw-kicker">Pakej pilihan anda</p><h2>{{ $selectedPackage->name }}</h2><p class="bw-price">{{ $selectedPackage->price_label }}</p>@if ($selectedPackage->summary)<p class="bw-muted">{{ $selectedPackage->summary }}</p>@endif</div>
+                    <div>
+                        <p class="bw-kicker">Pakej pilihan anda</p><h2>{{ $selectedPackage->name }}</h2><p class="bw-price">{{ $selectedPackage->price_label }}</p>
+                        @if (! empty($selectedPackage->inclusions))
+                            {{-- Sama seperti halaman Services: senarai ini termasuk dalam pakej, tiada tanda tick diperlukan. --}}
+                            <ul class="pkg-features">
+                                @foreach ($selectedPackage->inclusions as $inclusion)<li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span>{{ $inclusion }}</span></li>@endforeach
+                            </ul>
+                        @elseif ($selectedPackage->summary)
+                            <p class="bw-muted">{{ $selectedPackage->summary }}</p>
+                        @endif
+                    </div>
                     <form method="post" action="{{ route('builder.entry') }}">@csrf<input type="hidden" name="entry_path" value="DIRECT_SELECTION"><input type="hidden" name="package" value="{{ $selectedPackage->slug }}"><button class="bw-btn bw-btn-primary" type="submit">Teruskan dengan pakej ini @include('builder.partials.icon', ['name' => 'arrow-right'])</button></form>
                 </article>
             @endif
@@ -128,6 +138,14 @@
                         <li><span><b x-text="selectedPackage()?.name"></b> <small x-text="selectedPackage()?.label"></small></span><button type="button" class="bw-link" @click="changePackage()">Tukar pakej</button></li>
                         <template x-for="a in selectedAddons()" :key="a.id"><li><span>Add-on: <b x-text="a.name"></b> <small x-text="a.label"></small></span><button type="button" class="bw-link is-remove" @click="removeAddon(a.id)" :aria-label="'Buang add-on ' + a.name">Buang</button></li></template>
                     </ul>
+                    {{-- Sama seperti halaman Services: senarai ini termasuk dalam pakej — maklumat sahaja, tiada tick diperlukan. --}}
+                    <template x-if="selectedPackage()?.inclusions?.length">
+                        <ul class="pkg-features bw-cost-includes">
+                            <template x-for="inc in selectedPackage().inclusions" :key="inc">
+                                <li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span x-text="inc"></span></li>
+                            </template>
+                        </ul>
+                    </template>
                     <p class="bw-muted bw-cost-note">Harga daripada katalog semasa. Harga bertanda "+" ialah harga permulaan; jumlah dimuktamadkan dalam quotation selepas Master Specification diluluskan.</p>
                 </div>
 
@@ -330,6 +348,13 @@
                         <li><span><b x-text="selectedPackage()?.name"></b> <small x-text="selectedPackage()?.label"></small></span><button type="button" class="bw-link" @click="changePackage()">Tukar pakej</button></li>
                         <template x-for="a in selectedAddons()" :key="a.id"><li><span>Add-on: <b x-text="a.name"></b> <small x-text="a.label"></small></span><button type="button" class="bw-link is-remove" @click="removeAddon(a.id)">Buang</button></li></template>
                     </ul>
+                    <template x-if="selectedPackage()?.inclusions?.length">
+                        <ul class="pkg-features bw-cost-includes">
+                            <template x-for="inc in selectedPackage().inclusions" :key="inc">
+                                <li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span x-text="inc"></span></li>
+                            </template>
+                        </ul>
+                    </template>
                     <p class="bw-muted bw-cost-note">Selepas Master Specification diluluskan, quotation dengan jumlah ini dijana terus untuk anda terima dan bayar.</p>
                 </div>
             </div>
