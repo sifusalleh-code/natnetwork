@@ -23,7 +23,7 @@
 <style>
     .rg { --rg-ink: #0b2447; --rg-muted: #4f6583; --rg-blue: #0b6fe0; --rg-blue2: #3a8ff5; --rg-green: #14a352; --rg-green2: #1fbf62; --rg-violet: #7a3be6; --rg-violet2: #9b5cf6; --rg-line: #dde9f6; position: relative; overflow: hidden; background: linear-gradient(180deg, #eef5fd 0%, #f6f9fe 55%, #fff 100%); }
     .rg *, .rg *::before, .rg *::after { box-sizing: border-box; }
-    .rg-wrap { position: relative; width: min(100% - 2 * var(--z-gutter), 82rem); margin-inline: auto; }
+    .rg-wrap { position: relative; width: min(100% - 2 * var(--z-gutter), var(--z-page)); margin-inline: auto; }
 
     /* Hero */
     .rg-hero { position: relative; min-height: 20rem; padding: 1.9rem 0 3.4rem; }

@@ -67,7 +67,7 @@ main:has(.zip-home)+.z-footer{margin-top:0}
         background-image:linear-gradient(90deg,rgb(243 249 255/.98) 0%,rgb(243 249 255/.92) 32%,rgb(243 249 255/.4) 50%,rgb(243 249 255/0) 64%),image-set(url('{{ asset('images/home/background-section-1-edge.webp') }}') type('image/webp'),url('{{ asset('images/home/background-section-1-edge.png') }}') type('image/png'));
         background-position:center;background-size:cover;background-repeat:no-repeat}
     .z-hero::after{content:"";position:absolute;inset:auto 0 0;height:5rem;background:linear-gradient(180deg,rgb(255 255 255/0),#fff);z-index:-1;pointer-events:none}
-    .z-hero .z-wrap{width:min(100% - 2 * var(--z-gutter),76rem)}
+    .z-hero .z-wrap{width:min(100% - 2 * var(--z-gutter),var(--z-page))}
     .z-hero-media{display:none}
 }
 
