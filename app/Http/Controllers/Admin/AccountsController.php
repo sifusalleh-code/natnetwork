@@ -69,11 +69,13 @@ class AccountsController extends Controller
         $skipped = 0;
 
         if ($data['action'] === 'delete') {
-            if ($modelClass === User::class) {
-                // Pendaftaran/transaksi sandbox pelanggan ini dibersih dahulu (Keputusan #2) supaya
-                // akaun yang HANYA ada sejarah sandbox benar-benar padam, bukan dilangkau.
-                foreach ($ids as $id) {
+            // Pendaftaran/transaksi sandbox akaun ini dibersih dahulu (Keputusan #2) supaya akaun
+            // yang HANYA ada sejarah sandbox benar-benar padam, bukan dilangkau.
+            foreach ($ids as $id) {
+                if ($modelClass === User::class) {
                     $this->purgeCustomerSandboxFootprint($id);
+                } elseif ($modelClass === Affiliate::class) {
+                    $this->purgeAffiliateSandboxFootprint($id);
                 }
             }
             $result = $this->deleteEligible($modelClass, $ids);

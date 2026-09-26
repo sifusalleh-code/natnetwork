@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Admin\Concerns;
 
+use App\Engines\Affiliate\Models\AffiliateClick;
+use App\Engines\Affiliate\Models\AffiliateClientLink;
 use App\Engines\Billing\Models\Invoice;
 use App\Engines\Billing\Models\Payment;
 use App\Engines\Billing\Models\QuotationPaymentPlan;
 use App\Engines\Billing\Models\Receipt;
 use App\Engines\Billing\Models\Refund;
+use App\Engines\Partnership\Models\PartnerCapital;
 use App\Engines\Project\Models\Project;
 use App\Engines\Sales\Models\ChangeRequest;
 use App\Engines\Sales\Models\MasterSpecification;
@@ -93,6 +96,49 @@ trait DeletesEligibleAccounts
                     MasterSpecification::query()->where('project_request_id', $requestId)->delete();
                     ProjectRequest::query()->whereKey($requestId)->delete();
                 }
+            }
+
+            // Pautan rujukan affiliate (siapa merujuk pelanggan ini) bukan rekod kewangan — hanya
+            // penanda hubungan. Selamat dipadam serentak dengan akaun pelanggan itu sendiri.
+            AffiliateClientLink::query()->where('customer_user_id', $customerUserId)->delete();
+        });
+    }
+
+    /**
+     * Bersihkan jejak penjejakan affiliate (klik, pautan pelanggan yang dirujuk) sebelum padam akaun
+     * Affiliate. Ini BUKAN rekod kewangan (komisen tidak pernah dicipta untuk bayaran sandbox — lihat
+     * AffiliateCommissionService), jadi selamat dipadam tanpa mengira sandbox/production. Withdrawal
+     * (permohonan pengeluaran) TIDAK disentuh — ia rekod kewangan/percubaan bayaran sebenar; jika
+     * wujud, akaun kekal dilangkau oleh deleteEligible() seperti sepatutnya.
+     */
+    private function purgeAffiliateSandboxFootprint(int $affiliateId): void
+    {
+        DB::transaction(function () use ($affiliateId): void {
+            AffiliateClientLink::query()->where('affiliate_id', $affiliateId)->delete();
+            AffiliateClick::query()->where('affiliate_id', $affiliateId)->delete();
+        });
+    }
+
+    /**
+     * Bersihkan modal SANDBOX partner (+ invois PARTNER_CAPITAL sandbox yang berkaitan) sebelum padam
+     * akaun Partner. Earning/payout (agihan pool & pengeluaran sebenar) TIDAK disentuh — ia mewakili
+     * pergerakan wang sebenar admin; jika wujud, akaun kekal dilangkau oleh deleteEligible().
+     */
+    private function purgePartnerSandboxFootprint(int $partnerId): void
+    {
+        DB::transaction(function () use ($partnerId): void {
+            $capitalIds = PartnerCapital::query()->where('partner_id', $partnerId)->where('is_sandbox', true)->pluck('id');
+            if ($capitalIds->isEmpty()) {
+                return;
+            }
+            $invoiceIds = PartnerCapital::query()->whereIn('id', $capitalIds)->whereNotNull('invoice_id')->pluck('invoice_id');
+            PartnerCapital::query()->whereIn('id', $capitalIds)->delete();
+
+            $sandboxInvoiceIds = Invoice::query()->whereIn('id', $invoiceIds)->where('is_sandbox', true)->pluck('id');
+            if ($sandboxInvoiceIds->isNotEmpty()) {
+                Receipt::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
+                Payment::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
+                Invoice::query()->whereIn('id', $sandboxInvoiceIds)->delete();
             }
         });
     }

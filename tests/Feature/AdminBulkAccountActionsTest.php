@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Engines\Affiliate\Models\Affiliate;
+use App\Engines\Affiliate\Models\AffiliateClick;
+use App\Engines\Affiliate\Models\AffiliateClientLink;
 use App\Engines\Affiliate\Models\AffiliateWithdrawal;
 use App\Engines\Billing\Models\Invoice;
 use App\Engines\Billing\Services\InvoiceService;
@@ -124,6 +126,38 @@ class AdminBulkAccountActionsTest extends TestCase
 
         $this->actingAs($admin, 'admin')->post(route('admin.affiliates.bulk'), ['ids' => [$affiliate->id], 'action' => 'delete', 'confirm' => '1'])->assertSessionHasNoErrors();
         $this->assertDatabaseMissing('affiliates', ['id' => $affiliate->id]);
+    }
+
+    public function test_bulk_delete_affiliate_purges_clicks_and_client_links_first(): void
+    {
+        $admin = $this->admin();
+        $affiliate = Affiliate::query()->create(['name' => 'Aff Rujuk', 'email' => 'affrujuk@example.test', 'phone' => '011']);
+        $referredClient = User::factory()->create();
+        AffiliateClick::query()->create(['affiliate_id' => $affiliate->id, 'visitor_token' => 'v1', 'source' => 'direct', 'device_type' => 'desktop', 'landing_path' => '/', 'clicked_at' => now()]);
+        AffiliateClientLink::query()->create(['affiliate_id' => $affiliate->id, 'customer_user_id' => $referredClient->id, 'linked_at' => now()]);
+
+        $this->actingAs($admin, 'admin')->post(route('admin.affiliates.bulk'), ['ids' => [$affiliate->id], 'action' => 'delete', 'confirm' => '1'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('affiliates', ['id' => $affiliate->id]);
+        $this->assertDatabaseMissing('affiliate_client_links', ['affiliate_id' => $affiliate->id]);
+        $this->assertDatabaseHas('users', ['id' => $referredClient->id]); // pelanggan yang dirujuk tidak disentuh
+    }
+
+    public function test_bulk_delete_partner_purges_sandbox_capital_but_keeps_production(): void
+    {
+        $admin = $this->admin();
+        $sandboxPartner = Partner::query()->create(['name' => 'P Sandbox', 'email' => 'psandbox@example.test', 'phone' => '3', 'id_type' => 'IC', 'id_number' => '3', 'status' => Partner::APPROVED]);
+        PartnerCapital::query()->create(['number' => 'TEST-PTC-S1', 'is_sandbox' => true, 'partner_id' => $sandboxPartner->id, 'amount' => '5000', 'status' => PartnerCapital::ACTIVE, 'terms_snapshot' => [], 'acceptance_metadata' => [], 'activated_at' => now()]);
+
+        $productionPartner = Partner::query()->create(['name' => 'P Production', 'email' => 'pprod@example.test', 'phone' => '4', 'id_type' => 'IC', 'id_number' => '4', 'status' => Partner::APPROVED]);
+        PartnerCapital::query()->create(['number' => 'NAT-PTC-P1', 'is_sandbox' => false, 'partner_id' => $productionPartner->id, 'amount' => '5000', 'status' => PartnerCapital::ACTIVE, 'terms_snapshot' => [], 'acceptance_metadata' => [], 'activated_at' => now()]);
+
+        $this->actingAs($admin, 'admin')->post(route('admin.partners.bulk'), ['ids' => [$sandboxPartner->id, $productionPartner->id], 'action' => 'delete', 'confirm' => '1'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('partners', ['id' => $sandboxPartner->id]);
+        $this->assertDatabaseMissing('partner_capitals', ['partner_id' => $sandboxPartner->id]);
+        $this->assertDatabaseHas('partners', ['id' => $productionPartner->id]);
+        $this->assertDatabaseHas('partner_capitals', ['partner_id' => $productionPartner->id]);
     }
 
     public function test_bulk_partner_approve_reject_suspend_and_delete_skips_with_capital(): void
