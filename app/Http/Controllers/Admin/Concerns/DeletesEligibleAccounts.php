@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Concerns;
 
+use App\Engines\Affiliate\Models\Affiliate;
 use App\Engines\Affiliate\Models\AffiliateClick;
 use App\Engines\Affiliate\Models\AffiliateClientLink;
 use App\Engines\Billing\Models\Invoice;
@@ -9,36 +10,46 @@ use App\Engines\Billing\Models\Payment;
 use App\Engines\Billing\Models\QuotationPaymentPlan;
 use App\Engines\Billing\Models\Receipt;
 use App\Engines\Billing\Models\Refund;
+use App\Engines\Identity\Models\EmailOtpChallenge;
+use App\Engines\Partnership\Models\Partner;
 use App\Engines\Partnership\Models\PartnerCapital;
 use App\Engines\Project\Models\Project;
+use App\Engines\Sales\Models\BuilderFile;
+use App\Engines\Sales\Models\BuilderSession;
 use App\Engines\Sales\Models\ChangeRequest;
 use App\Engines\Sales\Models\MasterSpecification;
 use App\Engines\Sales\Models\Order;
 use App\Engines\Sales\Models\ProjectRequest;
 use App\Engines\Sales\Models\Quotation;
 use App\Engines\Scheduling\Models\SlotHold;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
- * Padam akaun ahli secara pukal (bulk) — HANYA jika rekod itu tiada sebarang transaksi/rekod
- * berkaitan (quotation, order, projek, komisen, modal, dll). Ini menguatkuasakan AGENTS.md §14:
- * "Jangan letakkan Edit/Delete pada semua record secara membuta tuli" — rekod yang mempunyai
- * sejarah transaksi dilangkau (bukan dipaksa padam), bukan diveto secara manual bagi setiap jadual
- * berkaitan, sebaliknya kekangan foreign key pangkalan data sendiri (restrictOnDelete) menjadi
- * pemeriksa muktamad: jika ada rujukan, padam akan gagal dan direkod sebagai "dilangkau".
+ * Padam akaun ahli secara pukal (bulk) — AGENTS.md §14: bukan Delete membuta tuli.
+ *
+ * Bagi setiap akaun, dalam SATU transaksi:
+ * 1. rekod yang bukan rekod kewangan/kontrak production dibersihkan (sandbox, pra-bayaran,
+ *    data penjejakan/log masuk — lihat purge*() di bawah);
+ * 2. akaun itu cuba dipadam.
+ * Jika masih ada rekod production (quotation ACCEPTED, invois/order/projek/komisen/modal/payout
+ * sebenar), kekangan foreign key (restrictOnDelete) menggagalkan padam dan KESELURUHAN transaksi
+ * dibatalkan — akaun dan semua rekodnya kekal utuh, direkod sebagai "dilangkau".
  */
 trait DeletesEligibleAccounts
 {
     /**
      * @param  list<int>  $ids
-     * @return array{deleted: list<int>, skipped: list<int>}
+     * @return array{deleted: list<int>, skipped: list<int>, blockers: list<string>}
      */
     private function deleteEligible(string $modelClass, array $ids): array
     {
         $deleted = [];
         $skipped = [];
+        $blockers = [];
 
         foreach ($ids as $id) {
             /** @var Model|null $record */
@@ -47,99 +58,131 @@ trait DeletesEligibleAccounts
                 continue;
             }
             try {
-                DB::transaction(function () use ($record): void {
+                $filePaths = DB::transaction(function () use ($record, $modelClass): array {
+                    $paths = match ($modelClass) {
+                        User::class => $this->purgeCustomerDeletableFootprint($record->getKey()),
+                        Affiliate::class => $this->purgeAffiliateDeletableFootprint($record->getKey()),
+                        Partner::class => $this->purgePartnerDeletableFootprint($record->getKey()),
+                        default => [],
+                    };
                     $record->delete();
+
+                    return $paths;
                 });
+                // Fail fizikal hanya dipadam selepas transaksi berjaya.
+                foreach ($filePaths as $path) {
+                    Storage::disk('local')->delete($path);
+                }
                 $deleted[] = $id;
-            } catch (QueryException) {
-                // Kekangan foreign key (restrictOnDelete): akaun ini mempunyai rekod/transaksi berkaitan.
+            } catch (QueryException $e) {
+                // Masih ada rekod production berkaitan — semua perubahan di atas dibatalkan.
                 $skipped[] = $id;
+                // MySQL/MariaDB menamakan jadual yang menyekat: "... constraint fails (`db`.`orders`, ...".
+                if (preg_match('/constraint fails \(`[^`]+`\.`([^`]+)`/', $e->getMessage(), $m)) {
+                    $blockers[] = $m[1];
+                }
             }
         }
 
-        return ['deleted' => $deleted, 'skipped' => $skipped];
+        return ['deleted' => $deleted, 'skipped' => $skipped, 'blockers' => array_values(array_unique($blockers))];
     }
 
     /**
-     * Bersihkan rantaian quotation/order/projek/invois SANDBOX sahaja bagi SATU pelanggan (Keputusan
-     * Owner 25 Sep 2026 #2: rekod sandbox boleh dipadam admin). Rekod production pelanggan yang sama
-     * tidak disentuh — jika masih ada quotation/order production, akaun tetap dilangkau seperti biasa
-     * selepas ini oleh deleteEligible() melalui kekangan foreign key. Dipanggil sebelum deleteEligible()
-     * untuk akaun Client supaya "pendaftaran ujian" (hanya ada transaksi sandbox) benar-benar padam.
+     * Client: bersihkan (1) rantaian SANDBOX (Keputusan #2) dan (2) rekod PRA-BAYARAN — quotation belum
+     * ACCEPTED tanpa invois/order, Master Specification, Project Request, sesi Builder (+ fail), cabaran
+     * OTP, pautan rujukan affiliate (Keputusan #3). Quotation ACCEPTED dan rekod kewangan production
+     * tidak disentuh.
+     *
+     * @return list<string> laluan fail Builder untuk dipadam selepas commit
      */
-    private function purgeCustomerSandboxFootprint(int $customerUserId): void
+    private function purgeCustomerDeletableFootprint(int $customerUserId): array
     {
-        DB::transaction(function () use ($customerUserId): void {
-            $requestIds = ProjectRequest::query()->where('customer_user_id', $customerUserId)->pluck('id');
-            $quotationIds = Quotation::query()->where('is_sandbox', true)->whereIn('project_request_id', $requestIds)->pluck('id');
+        $requestIds = ProjectRequest::query()->where('customer_user_id', $customerUserId)->pluck('id');
 
-            if ($quotationIds->isNotEmpty()) {
-                $projectIds = Project::query()->where('is_sandbox', true)->whereIn('quotation_id', $quotationIds)->pluck('id');
-                $invoiceIds = Invoice::query()->where('is_sandbox', true)->where('source_type', 'Quotation')->whereIn('source_id', $quotationIds)->pluck('id');
+        // 1. Sandbox.
+        $sandboxQuotationIds = Quotation::query()->where('is_sandbox', true)->whereIn('project_request_id', $requestIds)->pluck('id');
+        if ($sandboxQuotationIds->isNotEmpty()) {
+            $projectIds = Project::query()->where('is_sandbox', true)->whereIn('quotation_id', $sandboxQuotationIds)->pluck('id');
+            $invoiceIds = Invoice::query()->where('is_sandbox', true)->where('source_type', 'Quotation')->whereIn('source_id', $sandboxQuotationIds)->pluck('id');
 
-                Refund::query()->where('is_sandbox', true)->whereIn('project_id', $projectIds)->delete();
-                ChangeRequest::query()->where('is_sandbox', true)->whereIn('quotation_id', $quotationIds)->delete();
-                Receipt::query()->whereIn('invoice_id', $invoiceIds)->delete();
-                Payment::query()->whereIn('invoice_id', $invoiceIds)->delete();
-                Project::query()->whereIn('id', $projectIds)->delete();
-                Order::query()->where('is_sandbox', true)->whereIn('quotation_id', $quotationIds)->delete();
-                SlotHold::query()->whereIn('quotation_id', $quotationIds)->delete();
-                QuotationPaymentPlan::query()->whereIn('quotation_id', $quotationIds)->delete();
-                Quotation::query()->whereIn('id', $quotationIds)->delete();
-                Invoice::query()->whereIn('id', $invoiceIds)->delete();
+            Refund::query()->where('is_sandbox', true)->whereIn('project_id', $projectIds)->delete();
+            ChangeRequest::query()->where('is_sandbox', true)->whereIn('quotation_id', $sandboxQuotationIds)->delete();
+            Receipt::query()->whereIn('invoice_id', $invoiceIds)->delete();
+            Payment::query()->whereIn('invoice_id', $invoiceIds)->delete();
+            Project::query()->whereIn('id', $projectIds)->delete();
+            Order::query()->where('is_sandbox', true)->whereIn('quotation_id', $sandboxQuotationIds)->delete();
+            SlotHold::query()->whereIn('quotation_id', $sandboxQuotationIds)->delete();
+            QuotationPaymentPlan::query()->whereIn('quotation_id', $sandboxQuotationIds)->delete();
+            Quotation::query()->whereIn('id', $sandboxQuotationIds)->delete();
+            Invoice::query()->whereIn('id', $invoiceIds)->delete();
+        }
+
+        // 2. Pra-bayaran: belum ACCEPTED, tiada invois (apa-apa jenis) dan tiada order.
+        $prePaymentIds = Quotation::query()->whereIn('project_request_id', $requestIds)
+            ->where('status', '!=', Quotation::STATUS_ACCEPTED)
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('invoices')->where('invoices.source_type', 'Quotation')->whereColumn('invoices.source_id', 'quotations.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('orders')->whereColumn('orders.quotation_id', 'quotations.id'))
+            ->pluck('id');
+        if ($prePaymentIds->isNotEmpty()) {
+            SlotHold::query()->whereIn('quotation_id', $prePaymentIds)->delete();
+            QuotationPaymentPlan::query()->whereIn('quotation_id', $prePaymentIds)->delete();
+            Quotation::query()->whereIn('id', $prePaymentIds)->delete();
+        }
+
+        // Project Request tanpa quotation lagi (+ Master Specification) — selamat dipadam.
+        foreach ($requestIds as $requestId) {
+            if (! Quotation::query()->where('project_request_id', $requestId)->exists()) {
+                MasterSpecification::query()->where('project_request_id', $requestId)->delete();
+                ProjectRequest::query()->whereKey($requestId)->delete();
             }
+        }
 
-            // Project Request/Master Specification tanpa quotation langsung (sandbox baru dibersih,
-            // atau tidak pernah sampai ke quotation) — selamat dipadam, quotation production dikekalkan.
-            foreach ($requestIds as $requestId) {
-                if (! Quotation::query()->where('project_request_id', $requestId)->exists()) {
-                    MasterSpecification::query()->where('project_request_id', $requestId)->delete();
-                    ProjectRequest::query()->whereKey($requestId)->delete();
-                }
-            }
+        // Sesi Builder yang tidak lagi dirujuk Project Request (jawapan & rekod fail ikut cascade).
+        $sessionIds = BuilderSession::query()->where('user_id', $customerUserId)
+            ->whereNotIn('id', ProjectRequest::query()->select('builder_session_id'))->pluck('id');
+        $filePaths = BuilderFile::query()->whereIn('builder_session_id', $sessionIds)->pluck('path')->all();
+        BuilderSession::query()->whereIn('id', $sessionIds)->delete();
 
-            // Pautan rujukan affiliate (siapa merujuk pelanggan ini) bukan rekod kewangan — hanya
-            // penanda hubungan. Selamat dipadam serentak dengan akaun pelanggan itu sendiri.
-            AffiliateClientLink::query()->where('customer_user_id', $customerUserId)->delete();
-        });
+        EmailOtpChallenge::query()->where('user_id', $customerUserId)->delete();
+        AffiliateClientLink::query()->where('customer_user_id', $customerUserId)->delete();
+
+        return $filePaths;
     }
 
     /**
-     * Bersihkan jejak penjejakan affiliate (klik, pautan pelanggan yang dirujuk) sebelum padam akaun
-     * Affiliate. Ini BUKAN rekod kewangan (komisen tidak pernah dicipta untuk bayaran sandbox — lihat
-     * AffiliateCommissionService), jadi selamat dipadam tanpa mengira sandbox/production. Withdrawal
-     * (permohonan pengeluaran) TIDAK disentuh — ia rekod kewangan/percubaan bayaran sebenar; jika
-     * wujud, akaun kekal dilangkau oleh deleteEligible() seperti sepatutnya.
+     * Affiliate: klik & pautan pelanggan dirujuk — data penjejakan, bukan kewangan (komisen tidak
+     * dicipta untuk bayaran sandbox). Komisen/withdrawal production tidak disentuh.
+     *
+     * @return list<string>
      */
-    private function purgeAffiliateSandboxFootprint(int $affiliateId): void
+    private function purgeAffiliateDeletableFootprint(int $affiliateId): array
     {
-        DB::transaction(function () use ($affiliateId): void {
-            AffiliateClientLink::query()->where('affiliate_id', $affiliateId)->delete();
-            AffiliateClick::query()->where('affiliate_id', $affiliateId)->delete();
-        });
+        AffiliateClientLink::query()->where('affiliate_id', $affiliateId)->delete();
+        AffiliateClick::query()->where('affiliate_id', $affiliateId)->delete();
+
+        return [];
     }
 
     /**
-     * Bersihkan modal SANDBOX partner (+ invois PARTNER_CAPITAL sandbox yang berkaitan) sebelum padam
-     * akaun Partner. Earning/payout (agihan pool & pengeluaran sebenar) TIDAK disentuh — ia mewakili
-     * pergerakan wang sebenar admin; jika wujud, akaun kekal dilangkau oleh deleteEligible().
+     * Partner: modal SANDBOX + invois PARTNER_CAPITAL sandbox (resit/bayaran). Modal production,
+     * earning dan payout (wang sebenar) tidak disentuh.
+     *
+     * @return list<string>
      */
-    private function purgePartnerSandboxFootprint(int $partnerId): void
+    private function purgePartnerDeletableFootprint(int $partnerId): array
     {
-        DB::transaction(function () use ($partnerId): void {
-            $capitalIds = PartnerCapital::query()->where('partner_id', $partnerId)->where('is_sandbox', true)->pluck('id');
-            if ($capitalIds->isEmpty()) {
-                return;
-            }
-            $invoiceIds = PartnerCapital::query()->whereIn('id', $capitalIds)->whereNotNull('invoice_id')->pluck('invoice_id');
-            PartnerCapital::query()->whereIn('id', $capitalIds)->delete();
+        $capitalIds = PartnerCapital::query()->where('partner_id', $partnerId)->where('is_sandbox', true)->pluck('id');
+        if ($capitalIds->isEmpty()) {
+            return [];
+        }
+        $invoiceIds = PartnerCapital::query()->whereIn('id', $capitalIds)->whereNotNull('invoice_id')->pluck('invoice_id');
+        PartnerCapital::query()->whereIn('id', $capitalIds)->delete();
 
-            $sandboxInvoiceIds = Invoice::query()->whereIn('id', $invoiceIds)->where('is_sandbox', true)->pluck('id');
-            if ($sandboxInvoiceIds->isNotEmpty()) {
-                Receipt::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
-                Payment::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
-                Invoice::query()->whereIn('id', $sandboxInvoiceIds)->delete();
-            }
-        });
+        $sandboxInvoiceIds = Invoice::query()->whereIn('id', $invoiceIds)->where('is_sandbox', true)->pluck('id');
+        Receipt::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
+        Payment::query()->whereIn('invoice_id', $sandboxInvoiceIds)->delete();
+        Invoice::query()->whereIn('id', $sandboxInvoiceIds)->delete();
+
+        return [];
     }
 }

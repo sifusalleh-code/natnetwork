@@ -67,23 +67,16 @@ class AccountsController extends Controller
         $ids = array_unique(array_map('intval', $data['ids']));
         $done = 0;
         $skipped = 0;
+        $blockers = [];
 
         if ($data['action'] === 'delete') {
-            // Pendaftaran/transaksi sandbox akaun ini dibersih dahulu (Keputusan #2) supaya akaun
-            // yang HANYA ada sejarah sandbox benar-benar padam, bukan dilangkau.
-            foreach ($ids as $id) {
-                if ($modelClass === User::class) {
-                    $this->purgeCustomerSandboxFootprint($id);
-                } elseif ($modelClass === Affiliate::class) {
-                    $this->purgeAffiliateSandboxFootprint($id);
-                }
-            }
             $result = $this->deleteEligible($modelClass, $ids);
             foreach ($result['deleted'] as $id) {
                 $audit->record('ACCOUNT_DELETED', $admin, null, null, ['model' => class_basename($modelClass), 'id' => $id]);
             }
             $done = count($result['deleted']);
             $skipped = count($result['skipped']);
+            $blockers = $result['blockers'];
         } else {
             $suspend = $data['action'] === 'suspend';
             /** @var iterable<Model> $records */
@@ -105,7 +98,10 @@ class AccountsController extends Controller
 
         $message = "{$done} akaun berjaya dikemas kini.";
         if ($skipped > 0) {
-            $message .= " {$skipped} akaun dilangkau (".($data['action'] === 'delete' ? 'mempunyai rekod/transaksi berkaitan' : 'sudah pada status tersebut').').';
+            $message .= " {$skipped} akaun dilangkau (".($data['action'] === 'delete' ? 'mempunyai quotation diterima atau rekod kewangan production' : 'sudah pada status tersebut').').';
+            if ($blockers !== []) {
+                $message .= ' Disekat oleh jadual: '.implode(', ', $blockers).'.';
+            }
         }
 
         return redirect()->route($redirectRoute)->with('status', $message);
