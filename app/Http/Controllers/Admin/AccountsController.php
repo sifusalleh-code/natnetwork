@@ -69,6 +69,13 @@ class AccountsController extends Controller
         $skipped = 0;
 
         if ($data['action'] === 'delete') {
+            if ($modelClass === User::class) {
+                // Pendaftaran/transaksi sandbox pelanggan ini dibersih dahulu (Keputusan #2) supaya
+                // akaun yang HANYA ada sejarah sandbox benar-benar padam, bukan dilangkau.
+                foreach ($ids as $id) {
+                    $this->purgeCustomerSandboxFootprint($id);
+                }
+            }
             $result = $this->deleteEligible($modelClass, $ids);
             foreach ($result['deleted'] as $id) {
                 $audit->record('ACCOUNT_DELETED', $admin, null, null, ['model' => class_basename($modelClass), 'id' => $id]);
