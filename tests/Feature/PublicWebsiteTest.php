@@ -24,7 +24,11 @@ class PublicWebsiteTest extends TestCase
         $this->get('/peluang')->assertOk()->assertSee('Kongsi Peluang')->assertSee('Komisen Berdasarkan Nilai Jualan')->assertSee('Task Mingguan')->assertSee(route('affiliate.register'), false);
         $this->get('/contact')->assertOk()->assertSee('NATNETWORK SYNERGY')->assertSee('Buka alamat dalam peta')->assertSee('enquiry@natnetwork.net')->assertSee('011-1670 05857')->assertSee('Lihat sijil pendaftaran')->assertSee('Borang pertanyaan')->assertSee('natnetworksynergy');
         $this->get('/demo')->assertOk()->assertSee('Galeri Contoh')->assertSee('Promosi Service')->assertSee('GrowBiz.my')->assertSee('Rumah Rimba Homestay')->assertSee('/demo/web/landing-page/design1/');
-        $this->get('/register')->assertOk()->assertSee('Daftar sebagai Client')->assertSee('Pendaftaran Partnership belum diaktifkan.')->assertSee('Log masuk Client');
+        $this->get('/register')->assertOk()->assertSee('Daftar sebagai Client')->assertSee('Pendaftaran Partnership belum diaktifkan.')
+            ->assertSee('Mulakan bersama')->assertSee('Pilih jenis pendaftaran')->assertSee('Daftar sebagai Affiliate')->assertSee('images/register/hero.webp')->assertSee('Pengesahan OTP');
+        foreach (['hero', 'client', 'partner', 'affiliate'] as $img) {
+            $this->assertFileExists(public_path('images/register/'.$img.'.webp'));
+        }
     }
 
     public function test_services_show_every_package_without_changing_content(): void
