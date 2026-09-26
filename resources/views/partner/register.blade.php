@@ -13,9 +13,16 @@
     'users' => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 5.8"/>',
     'megaphone' => '<path d="M3 11v2a1 1 0 0 0 1 1h3l9 5V5L7 10H4a1 1 0 0 0-1 1z"/><path d="M19 9a3 3 0 0 1 0 6M8 14l1.5 5"/>',
     'arrow' => '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    'arrow-left' => '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    'target' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+    'portal' => '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M3 9h18"/>',
+    'refund' => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 8v4l3 2"/>',
+    'bank' => '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
+    'alert' => '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
+    'list' => '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
 ])
 @php($svg = fn (string $name, string $class = '') => '<svg class="'.$class.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'.$pIcon[$name].'</svg>')
-<section class="auth-card pship" :class="{ 'is-hero': step === 1 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
+<section class="auth-card pship" :class="{ 'is-hero': step === 1 || step === 2 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
     <div class="pship-main">
     <p class="eyebrow">Program Partnership</p>
 
@@ -56,19 +63,21 @@
         </div>
 
         {{-- Langkah 2: Terma & syarat --}}
-        <div x-show="step === 2" x-cloak>
-            <h1 x-ref="s2" tabindex="-1">Terma &amp; syarat</h1>
-            <p class="lead">Sila baca terma berikut sebelum meneruskan pendaftaran.</p>
-            <div class="nn-terms" tabindex="0" aria-label="Terma dan syarat Program Partnership">
-                <h3>{{ config('partnership_terms.title') }} <small class="muted">(versi {{ config('partnership_terms.version') }})</small></h3>
-                @foreach (config('partnership_terms.terms') as $t)
-                    <p><b>{{ $t['title'] }}.</b> {{ $t['body'] }}</p>
-                @endforeach
+        <div x-show="step === 2" x-cloak class="pship-intro">
+            <h1 class="pship-title is-plain" x-ref="s2" tabindex="-1">Terma &amp; syarat</h1>
+            <p class="pship-lead is-tight">Sila baca terma berikut sebelum meneruskan pendaftaran.</p>
+            <div class="pship-terms" tabindex="0" aria-label="Terma dan syarat Program Partnership">
+                <h3>{{ config('partnership_terms.title') }} <small>(versi {{ config('partnership_terms.version') }})</small></h3>
+                <ol>
+                    @foreach (config('partnership_terms.terms') as $t)
+                        <li><span class="pship-term-ic">{!! $svg($t['icon'] ?? 'doc') !!}</span><div><b>{{ $t['title'] }}</b><p>{{ $t['body'] }}</p></div></li>
+                    @endforeach
+                </ol>
             </div>
-            <label class="nn-check"><input type="checkbox" x-model="agree"> Saya telah membaca dan bersetuju dengan terma dan syarat Program Partnership. Saya faham pulangan bergantung kepada jualan sebenar dan tidak dijamin.</label>
-            <div class="button-row">
-                <button type="button" class="button button-secondary" @click="step = 1">Kembali</button>
-                <button type="button" class="button" :disabled="! agree" :aria-disabled="(! agree).toString()" @click="if (agree) { step = 3; $nextTick(() => $refs.s3 && $refs.s3.focus()) }">Daftar</button>
+            <label class="pship-agree"><input type="checkbox" x-model="agree"> <span>Saya telah membaca dan bersetuju dengan terma dan syarat Program Partnership. Saya faham pulangan bergantung kepada jualan sebenar dan tidak dijamin.</span></label>
+            <div class="pship-actions is-inline">
+                <button type="button" class="button button-secondary pship-back" @click="step = 1">{!! $svg('arrow-left') !!} Kembali</button>
+                <button type="button" class="button pship-cta" :disabled="! agree" :aria-disabled="(! agree).toString()" @click="if (agree) { step = 3; $nextTick(() => $refs.s3 && $refs.s3.focus()) }">Daftar {!! $svg('arrow') !!}</button>
             </div>
         </div>
 
@@ -136,6 +145,18 @@
                     <li><span class="pship-ic is-blue">{!! $svg('users') !!}</span><b>Team Affiliate Berdedikasi</b><small>Strategi marketing dirancang dan dipantau oleh pihak syarikat.</small></li>
                     <li><span class="pship-ic is-blue">{!! $svg('megaphone') !!}</span><b>Aktiviti Marketing Berterusan</b><small>Kempen berterusan untuk meningkatkan jualan produk dan servis.</small></li>
                     <li><span class="pship-ic is-blue">{!! $svg('chart') !!}</span><b>Prestasi Dipantau</b><small>Laporan prestasi berkala untuk memastikan pertumbuhan stabil dan konsisten.</small></li>
+                </ul>
+            </div>
+        </aside>
+        <aside class="pship-aside" x-show="step === 2" x-cloak aria-label="Kenapa perlu baca terma">
+            <img class="pship-photo is-sharp" src="{{ asset('images/partnership/partnership-terms.webp') }}" alt="Komputer riba memaparkan Terma &amp; Syarat Program Partnership NatNetwork" width="610" height="490" loading="lazy">
+            <div class="pship-support">
+                <h2>Kenapa perlu baca terma ini?</h2>
+                <p>Terma ini membantu anda memahami hak, tanggungjawab dan cara pengiraan pulangan dalam Program Partnership.</p>
+                <ul>
+                    <li><span class="pship-ic is-soft">{!! $svg('shield') !!}</span><b>Ketelusan</b><small>Semua terma dinyatakan secara jelas dan terbuka.</small></li>
+                    <li><span class="pship-ic is-soft">{!! $svg('users') !!}</span><b>Perlindungan</b><small>Melindungi kedua-dua pihak, syarikat dan partner.</small></li>
+                    <li><span class="pship-ic is-soft">{!! $svg('chart') !!}</span><b>Keputusan bijak</b><small>Anda membuat pertimbangan dengan maklumat yang lengkap.</small></li>
                 </ul>
             </div>
         </aside>
