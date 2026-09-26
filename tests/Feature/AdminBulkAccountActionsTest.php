@@ -85,6 +85,32 @@ class AdminBulkAccountActionsTest extends TestCase
         $this->assertDatabaseHas('orders', ['customer_user_id' => $productionClient->id]);
     }
 
+    public function test_sandbox_backfill_migration_fixes_stale_flags_then_delete_succeeds(): void
+    {
+        $admin = $this->admin();
+
+        // Simulasi data lama: quotation/order/projek is_sandbox=false (nilai default migration
+        // 2026_09_28) walaupun invois yang berkaitan sudah lama betul-betul bertanda sandbox.
+        $legacyClient = $this->portalReadyClient();
+        $order = Order::query()->where('customer_user_id', $legacyClient->id)->sole();
+        $quotation = Quotation::query()->findOrFail($order->quotation_id);
+        $this->assertFalse($quotation->is_sandbox);
+        $invoice = app(InvoiceService::class)->issue('DEPOSIT', ['name' => $legacyClient->name, 'email' => $legacyClient->email], [
+            ['description' => 'Deposit lama (sandbox)', 'quantity' => 1, 'unit_price' => '500.00'],
+        ], $legacyClient, null, 'Quotation', $quotation->id);
+        $invoice->forceFill(['is_sandbox' => true])->save(); // invois lama, betul sejak awal
+
+        $migration = require database_path('migrations/2026_09_30_000100_backfill_sandbox_flag_from_invoices.php');
+        $migration->up();
+
+        $this->assertTrue($quotation->fresh()->is_sandbox);
+        $this->assertTrue($order->fresh()->is_sandbox);
+
+        // Selepas backfill, bulk delete kini berjaya membersih & memadam akaun ini.
+        $this->actingAs($admin, 'admin')->post(route('admin.clients.bulk'), ['ids' => [$legacyClient->id], 'action' => 'delete', 'confirm' => '1'])->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('users', ['id' => $legacyClient->id]);
+    }
+
     public function test_bulk_suspend_and_delete_affiliates(): void
     {
         $admin = $this->admin();
