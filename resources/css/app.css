@@ -1434,3 +1434,14 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 @keyframes pay-pulse { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
 .pay-card .button-row { justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .pay-spin, .pay-pop, .pay-live-dot { animation: none; } }
+.spec-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: 1.25rem; }
+.spec-actions > a { margin-right: auto; font-weight: 700; }
+.spec-actions .button, .spec-reset-actions .button { margin-top: 0; }
+.spec-actions form { margin: 0; }
+.spec-reset-btn { color: #b42318; border-color: #f3c3bd; }
+.spec-reset-btn:hover { color: #fff; background: #b42318; border-color: #b42318; }
+.spec-reset-warn { margin-top: 1rem; padding: 1rem 1.1rem; color: #7a1c14; background: #fef3f2; border: 1px solid #f3c3bd; border-radius: .9rem; }
+.spec-reset-warn p { margin: 0 0 .5rem; }
+.spec-reset-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .6rem; margin-top: .75rem; }
+.spec-reset-confirm { background: #b42318; border-color: #b42318; }
+.spec-reset-confirm:hover { background: #912018; border-color: #912018; }

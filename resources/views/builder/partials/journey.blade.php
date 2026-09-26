@@ -28,7 +28,7 @@
         @if ($journey['paymentFailed'] && $journey['canReset'])
             <form method="post" action="{{ route('builder.reset') }}" class="bwj-reset" x-data="{ ok: false }">
                 @csrf
-                <p><b>Bayaran belum berjaya.</b> Anda boleh teruskan bil yang sama (butang di atas), atau reset Start Project untuk mula semula. Reset membatalkan bil {{ $journey['invoice']?->number }}, quotation dan slot yang dipegang; rekod lama disimpan.</p>
+                <p><b>Bayaran belum berjaya.</b> Anda boleh teruskan bil yang sama (butang di atas), atau reset Start Project untuk mula semula. Reset membatalkan bil {{ $journey['invoice']?->number }} (kekal sebagai rekod VOID), dan memadam quotation, slot yang dipegang serta semua maklumat Start Project.</p>
                 <label class="bwj-confirm"><input type="checkbox" name="confirm" value="1" x-model="ok"> Saya faham dan mahu reset Start Project.</label>
                 @error('confirm')<span class="bw-error">{{ $message }}</span>@enderror
                 @error('reset')<span class="bw-error">{{ $message }}</span>@enderror

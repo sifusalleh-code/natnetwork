@@ -7,6 +7,8 @@ use App\Engines\Audit\Services\AuditLogger;
 use App\Engines\Billing\Models\Invoice;
 use App\Engines\Billing\Models\Payment;
 use App\Engines\Billing\Models\QuotationPaymentPlan;
+use App\Engines\Sales\Models\BuilderAnswer;
+use App\Engines\Sales\Models\BuilderFile;
 use App\Engines\Sales\Models\BuilderSession;
 use App\Engines\Sales\Models\MasterSpecification;
 use App\Engines\Sales\Models\Order;
@@ -15,6 +17,7 @@ use App\Engines\Sales\Models\Quotation;
 use App\Engines\Scheduling\Models\SlotHold;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -22,7 +25,8 @@ use Illuminate\Validation\ValidationException;
  * Reset HANYA dibenarkan sebelum sebarang bayaran dibuat (tiada bayaran berjaya/sedang diproses, tiada Order).
  * Invois yang telah dikeluarkan tetapi tidak pernah dibayar → VOID (rekod kewangan tidak dipadam — AGENTS §5/§8).
  * Bayaran belum selesai → CANCELLED. Slot hold, quotation, Master Specification dan Project Request lama
- * (belum pernah diterima/dibayar) DIPADAM sepenuhnya supaya pelanggan mula Start Project yang benar-benar baharu.
+ * (belum pernah diterima/dibayar) DIPADAM sepenuhnya supaya pelanggan mula Start Project yang benar-benar baharu,
+ * begitu juga jawapan soal jawab, fail dimuat naik, pakej dan add-on Start Project tersebut.
  */
 class StartProjectResetService
 {
@@ -36,10 +40,10 @@ class StartProjectResetService
     {
         abort_unless($session->user_id === $customer->id, 403);
 
-        DB::transaction(function () use ($session, $customer): void {
+        $paths = DB::transaction(function () use ($session, $customer): array {
             $session = BuilderSession::query()->lockForUpdate()->findOrFail($session->id);
             if ($session->reset_at) {
-                return; // idempotent
+                return []; // idempotent
             }
             $requestId = ProjectRequest::query()->where('builder_session_id', $session->id)->value('id');
             $quotationIds = $requestId ? Quotation::query()->where('project_request_id', $requestId)->pluck('id')->all() : [];
@@ -76,12 +80,23 @@ class StartProjectResetService
                 MasterSpecification::query()->where('project_request_id', $requestId)->delete();
                 ProjectRequest::query()->whereKey($requestId)->delete();
             }
-            $session->forceFill(['reset_at' => now()])->save();
+            $files = BuilderFile::query()->where('builder_session_id', $session->id)->get();
+            BuilderFile::query()->whereKey($files->modelKeys())->delete();
+            BuilderAnswer::query()->where('builder_session_id', $session->id)->delete();
+            $session->forceFill(['reset_at' => now(), 'service_package_id' => null, 'addon_ids' => null, 'current_step' => null, 'completed_at' => null])->save();
 
             $this->audit->record('START_PROJECT_RESET', $customer, $customer, null, [
                 'builder_session_id' => $session->id, 'project_request_id' => $requestId,
                 'deleted_quotation_ids' => $quotationIds, 'voided_invoice_ids' => $voided,
+                'deleted_answers_and_files' => true, 'deleted_file_count' => $files->count(),
             ]);
+
+            return $files->pluck('path')->filter()->all();
         });
+
+        // Fail fizikal dipadam hanya selepas transaksi berjaya.
+        if ($paths) {
+            Storage::disk('local')->delete($paths);
+        }
     }
 }

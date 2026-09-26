@@ -85,6 +85,73 @@ class MasterSpecificationFlowTest extends TestCase
         $this->get(route('specification.show'))->assertOk();
     }
 
+    public function test_viewing_specification_generates_it_automatically_without_a_draft_page(): void
+    {
+        [$customer, $builder] = $this->verifiedBuilder('business-website', ['blog-news']);
+        $client = $this->actingAs($customer, 'client')->withSession(['natnetwork_builder_session_id' => $builder->id]);
+
+        $client->get(route('specification.show'))->assertOk()
+            ->assertSee('Sahkan Master Specification')->assertSee('Reset')->assertSee('Amaran: reset Start Project?')
+            ->assertDontSee('Jana Master Specification Draft')->assertDontSee('Belum ada draf');
+        $this->assertDatabaseCount('master_specifications', 1);
+
+        // Dibuka semula: draf sama dikemas kini (tiada versi berganda).
+        $client->get(route('specification.show'))->assertOk();
+        $this->assertDatabaseCount('master_specifications', 1);
+
+        // Versi diluluskan tidak dijana semula; butang Reset tiada lagi.
+        $specification = MasterSpecification::query()->firstOrFail();
+        $client->post(route('specification.approve', $specification));
+        $client->get(route('specification.show'))->assertOk()->assertSee('Versi ini dikunci')->assertDontSee('Amaran: reset Start Project?');
+        $this->assertSame(MasterSpecification::STATUS_APPROVED, $specification->fresh()->status);
+        $this->assertDatabaseCount('master_specifications', 1);
+    }
+
+    public function test_incomplete_builder_is_sent_back_instead_of_generating(): void
+    {
+        [$customer, $builder] = $this->verifiedBuilder();
+        $builder->update(['service_package_id' => null]);
+
+        $this->actingAs($customer, 'client')->withSession(['natnetwork_builder_session_id' => $builder->id])
+            ->get(route('specification.show'))->assertRedirect(route('builder.start'))->assertSessionHas('builder_status', 'Sila pilih pakej sebelum menjana spesifikasi.');
+        $this->assertDatabaseCount('master_specifications', 0);
+    }
+
+    public function test_reset_from_specification_deletes_all_start_project_information(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        [$customer, $builder] = $this->verifiedBuilder('business-website', ['blog-news']);
+        \Illuminate\Support\Facades\Storage::disk('local')->put('builder/logo.png', 'x');
+        \App\Engines\Sales\Models\BuilderFile::query()->create(['builder_session_id' => $builder->id, 'kind' => 'logo', 'original_name' => 'logo.png', 'path' => 'builder/logo.png', 'mime' => 'image/png', 'size' => 1]);
+        $client = $this->actingAs($customer, 'client')->withSession(['natnetwork_builder_session_id' => $builder->id]);
+        $client->get(route('specification.show'))->assertOk();
+
+        // Tanpa pengesahan amaran: ditolak, tiada apa dipadam.
+        $client->post(route('builder.reset'))->assertSessionHasErrors('confirm');
+        $this->assertDatabaseCount('master_specifications', 1);
+
+        $client->post(route('builder.reset'), ['confirm' => '1'])->assertRedirect(route('builder.start'))
+            ->assertSessionHas('builder_status', 'Start Project telah di-reset. Semua maklumat telah dipadam — sila mula semula.');
+
+        $this->assertDatabaseCount('master_specifications', 0);
+        $this->assertDatabaseCount('project_requests', 0);
+        $this->assertDatabaseMissing('builder_answers', ['builder_session_id' => $builder->id]);
+        $this->assertDatabaseMissing('builder_files', ['builder_session_id' => $builder->id]);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing('builder/logo.png');
+        $old = $builder->fresh();
+        $this->assertNotNull($old->reset_at);
+        $this->assertNull($old->service_package_id);
+        $this->assertNull($old->addon_ids);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'START_PROJECT_RESET']);
+
+        // Mula semula: Start Project baharu yang kosong, identiti kekal (tiada kod pengesahan semula).
+        $this->assertNotSame($builder->id, session('natnetwork_builder_session_id'));
+        $fresh = BuilderSession::query()->findOrFail(session('natnetwork_builder_session_id'));
+        $this->assertSame($customer->id, $fresh->user_id);
+        $this->assertNull($fresh->service_package_id);
+        $this->assertSame(0, $fresh->answers()->count());
+    }
+
     public function test_customer_cannot_view_another_customers_specification(): void
     {
         [, $builder] = $this->verifiedBuilder();
