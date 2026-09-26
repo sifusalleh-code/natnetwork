@@ -1644,7 +1644,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .ppay-btn.is-primary:hover { background: #0958b8; transform: translateY(-1px); }
 @media (max-width: 64rem) {
     .ppay { grid-template-columns: minmax(0, 1fr); }
-    .ppay-side { order: 2; }
+    .ppay-side { order: -1; }
     .ppay-photo { width: 100%; margin-left: 0; border-radius: 1rem; }
 }
 .ppay-btn.is-primary { white-space: normal; }
