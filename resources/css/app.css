@@ -1520,3 +1520,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
     .pship-capital { padding: 1rem; }
     .pship-capital-ic { width: 3.2rem; height: 3.2rem; }
 }
+.pship-closed { display: inline-flex; gap: .45rem; align-items: center; margin: 0 0 .9rem; padding: .45rem .95rem; color: #fff; background: linear-gradient(135deg, #e0453a, #b42318); border-radius: 99px; font-size: .9rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 8px 18px rgb(180 35 24 / .25); }
+.pship-closed svg { width: 1rem; height: 1rem; }
+.pship-closed-note { margin: 0 0 1rem; padding: .85rem 1rem; color: #7a1c14; background: #fef3f2; border: 1px solid #f3c3bd; border-radius: .9rem; font-weight: 600; }
+.pship.is-closed .pship-capital { opacity: .7; }

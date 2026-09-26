@@ -12,7 +12,7 @@
             <details><summary>{{ config('partnership_terms.title') }} (versi {{ config('partnership_terms.version') }})</summary>
                 @foreach (config('partnership_terms.terms') as $t)<p><b>{{ $t['title'] }}.</b> {{ $t['body'] }}</p>@endforeach
             </details>
-            <label class="prt-check"><input type="checkbox" name="agree" value="1" required> Saya telah membaca dan bersetuju dengan terma Program Partnership. Saya faham pulangan bergantung kepada jualan sebenar dan tidak dijamin.</label>
+            <label class="prt-check"><input type="checkbox" name="agree" value="1" required> Saya telah membaca dan bersetuju dengan terma dan syarat Program Partnership. Saya faham dan jelas pulangan bergantung kepada prestasi marketing dan hasil jualan sebenar dan yakin pihak syarikat lakukan yang terbaik untuk partnership.</label>
             <button class="button" type="submit">Teruskan ke bayaran</button>
         </form>
     </article>

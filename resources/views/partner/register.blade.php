@@ -3,7 +3,7 @@
 @section('content')
 @php($minCapital = (float) $settings->min_capital)
 @php($poolPercent = rtrim(rtrim(number_format((float) $settings->pool_percent, 2), '0'), '.'))
-@php($startStep = $pending ? 3 : ($errors->any() ? 3 : 1))
+@php($startStep = $full ? 1 : ($pending ? 3 : ($errors->any() && ! $errors->has('registration') ? 3 : 1)))
 @php($pIcon = [
     'chart' => '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     'shield' => '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/>',
@@ -22,7 +22,7 @@
     'list' => '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
 ])
 @php($svg = fn (string $name, string $class = '') => '<svg class="'.$class.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'.$pIcon[$name].'</svg>')
-<section class="auth-card pship" :class="{ 'is-hero': step === 1 || step === 2 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
+<section @class(['auth-card', 'pship', 'is-closed' => $full]) :class="{ 'is-hero': step === 1 || step === 2 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
     <div class="pship-main">
     <p class="eyebrow">Program Partnership</p>
 
@@ -41,6 +41,9 @@
 
         {{-- Langkah 1: Daftar --}}
         <div x-show="step === 1" x-cloak class="pship-intro">
+            @if ($full)
+                <p class="pship-closed" role="status">{!! $svg('lock') !!} Pendaftaran ditutup</p>
+            @endif
             <h1 class="pship-title">Sertai Program <span>Partnership</span></h1>
             <p class="pship-lead">Kongsi hasil jualan NatNetwork dan nikmati agihan berdasarkan nisbah modal yang ditetapkan kepada partner. Bersama-sama kita membina pertumbuhan yang berterusan.</p>
             <ul class="pship-features">
@@ -56,8 +59,16 @@
                     <small>{!! $svg('lock') !!} Bayaran selamat melalui <b>Billplz</b></small>
                 </div>
             </div>
+            @if ($full)
+                <p class="pship-closed-note">Modal terkumpul Program Partnership telah mencapai RM{{ number_format((float) $settings->max_total_capital) }}. Pendaftaran partner baharu ditutup. Terima kasih atas minat anda.</p>
+            @endif
+            @error('registration')<p class="form-error">{{ $message }}</p>@enderror
             <div class="pship-actions">
-                <button type="button" class="button pship-cta" @click="step = 2; $nextTick(() => $refs.s2.focus())">Daftar sekarang {!! $svg('arrow') !!}</button>
+                @if ($full)
+                    <button type="button" class="button pship-cta" disabled aria-disabled="true">Pendaftaran ditutup</button>
+                @else
+                    <button type="button" class="button pship-cta" @click="step = 2; $nextTick(() => $refs.s2.focus())">Daftar sekarang {!! $svg('arrow') !!}</button>
+                @endif
                 <a class="button button-secondary pship-cta-alt" href="{{ route('partner.login') }}">Saya sudah berdaftar</a>
             </div>
         </div>
@@ -74,7 +85,7 @@
                     @endforeach
                 </ol>
             </div>
-            <label class="pship-agree"><input type="checkbox" x-model="agree"> <span>Saya telah membaca dan bersetuju dengan terma dan syarat Program Partnership. Saya faham pulangan bergantung kepada jualan sebenar dan tidak dijamin.</span></label>
+            <label class="pship-agree"><input type="checkbox" x-model="agree"> <span>Saya telah membaca dan bersetuju dengan terma dan syarat Program Partnership. Saya faham dan jelas pulangan bergantung kepada prestasi marketing dan hasil jualan sebenar dan yakin pihak syarikat lakukan yang terbaik untuk partnership.</span></label>
             <div class="pship-actions is-inline">
                 <button type="button" class="button button-secondary pship-back" @click="step = 1">{!! $svg('arrow-left') !!} Kembali</button>
                 <button type="button" class="button pship-cta" :disabled="! agree" :aria-disabled="(! agree).toString()" @click="if (agree) { step = 3; $nextTick(() => $refs.s3 && $refs.s3.focus()) }">Daftar {!! $svg('arrow') !!}</button>

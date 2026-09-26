@@ -55,7 +55,7 @@ class PartnershipTest extends TestCase
             // Langkah 1 (premium): modal minimum daripada tetapan, foto & sokongan syarikat.
             ->assertSee('RM5,000')->assertSee('Sokongan penuh daripada pihak syarikat')->assertSee('images/partnership/partnership-hero.webp')
             // Langkah 2 (premium): terma Owner v1.0 lengkap + panel "Kenapa perlu baca terma ini?".
-            ->assertSee('Terma dan Syarat Partnership')->assertSee('(versi 1.0)', false)->assertSee('Kenapa perlu baca terma ini?')->assertSee('images/partnership/partnership-terms.webp')
+            ->assertSee('Terma dan Syarat Partnership')->assertSee('(versi 1.1)', false)->assertSee('Kenapa perlu baca terma ini?')->assertSee('images/partnership/partnership-terms.webp')
             ->assertSee('mengumpul modal RM100,000')->assertSee('selama 2 tahun dari tarikh daftar')->assertSee('Pengeluaran keuntungan');
         $this->assertCount(9, config('partnership_terms.terms'));
         foreach (['partnership-hero.webp', 'partnership-terms.webp'] as $img) {
@@ -133,6 +133,30 @@ class PartnershipTest extends TestCase
         $this->actingAs($admin, 'admin')->post(route('admin.partners.payout', $a), ['amount' => '50', 'transfer_reference' => 'MBB999', 'confirm' => '1'])->assertSessionHasNoErrors();
         $this->assertSame(1000, $a->fresh()->balanceCents());
         $this->actingAs($admin, 'admin')->get(route('admin.partners.pool'))->assertOk()->assertSee($sale->number);
+    }
+
+    public function test_registration_closes_when_collected_capital_reaches_the_cap(): void
+    {
+        PartnerSetting::current()->update(['program_enabled' => true, 'max_total_capital' => 100000]);
+        $p = Partner::query()->create(['name' => 'P', 'email' => 'p@example.test', 'phone' => '1', 'id_type' => 'IC', 'id_number' => '1', 'status' => Partner::APPROVED]);
+        // Belum penuh: modal menunggu bayaran & sandbox tidak dikira sebagai modal terkumpul.
+        PartnerCapital::query()->create(['number' => 'NAT-PTC-A', 'partner_id' => $p->id, 'amount' => '95000', 'status' => PartnerCapital::ACTIVE, 'terms_snapshot' => [], 'acceptance_metadata' => [], 'activated_at' => now()]);
+        PartnerCapital::query()->create(['number' => 'NAT-PTC-B', 'partner_id' => $p->id, 'amount' => '5000', 'status' => PartnerCapital::PENDING_PAYMENT, 'terms_snapshot' => [], 'acceptance_metadata' => []]);
+        PartnerCapital::query()->create(['number' => 'NAT-PTC-C', 'partner_id' => $p->id, 'amount' => '5000', 'status' => PartnerCapital::ACTIVE, 'is_sandbox' => true, 'terms_snapshot' => [], 'acceptance_metadata' => [], 'activated_at' => now()]);
+        $this->assertFalse(PartnerSetting::current()->registrationFull());
+        $this->get(route('partner.register'))->assertOk()->assertSee('Daftar sekarang')->assertDontSee('Pendaftaran ditutup');
+        $this->get('/register')->assertOk()->assertSee('Daftar sebagai Partnership')->assertDontSee('Pendaftaran ditutup');
+
+        // Modal terkumpul (aktif) mencapai RM100,000 → pendaftaran ditutup.
+        PartnerCapital::query()->where('number', 'NAT-PTC-B')->update(['status' => PartnerCapital::ACTIVE, 'activated_at' => now()]);
+        $this->assertTrue(PartnerSetting::current()->registrationFull());
+        $this->get(route('partner.register'))->assertOk()->assertSee('Pendaftaran ditutup')->assertSee('RM100,000')
+            ->assertSee('<button type="button" class="button pship-cta" disabled aria-disabled="true">Pendaftaran ditutup</button>', false)->assertDontSee('Daftar sekarang');
+        $this->get('/register')->assertOk()->assertSee('Pendaftaran ditutup')->assertDontSee('Daftar sebagai Partnership');
+
+        // Pelayan menolak pendaftaran walaupun borang dihantar terus.
+        $this->post(route('partner.register.send'), $this->form())->assertSessionHasErrors('registration');
+        $this->assertDatabaseMissing('partners', ['email' => 'ali@example.test']);
     }
 
     public function test_pool_split_is_exact_and_refund_reverses_proportionally(): void

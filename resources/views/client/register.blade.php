@@ -3,6 +3,7 @@
 @section('content')
 @php($partnershipSettings = \App\Engines\Partnership\Models\PartnerSetting::current())
 @php($partnershipOpen = $partnershipSettings->program_enabled)
+@php($partnershipFull = $partnershipOpen && $partnershipSettings->registrationFull())
 @php($poolPercent = rtrim(rtrim(number_format((float) $partnershipSettings->pool_percent, 2), '0'), '.'))
 <style>
     .rg { --rg-blue: #0b66a7; --rg-blue2: #2a93d6; --rg-green: #15803d; --rg-green2: #22c55e; --rg-violet: #6d28d9; --rg-violet2: #8b5cf6; --rg-ink: #082a4d; --rg-muted: #58738e; --rg-line: #d6e8f6; position: relative; overflow: hidden; background: linear-gradient(180deg, #f3f9ff 0%, #fff 60%); }
@@ -67,6 +68,7 @@
     .rg-card:hover li i { transform: scale(1.12); }
     .rg-card:hover li:nth-child(2) i { transition-delay: .05s; } .rg-card:hover li:nth-child(3) i { transition-delay: .1s; } .rg-card:hover li:nth-child(4) i { transition-delay: .15s; }
     .rg-note { margin: -.6rem 0 .8rem; padding: .45rem .7rem; color: #7a5200; background: #fff6dc; border-radius: .5rem; font-size: .8rem; font-weight: 700; }
+    .rg-note.rg-closed { color: #9f1c12; background: #fdecea; }
 
     .rg-btn { position: relative; display: inline-flex; width: 100%; margin-top: auto; align-items: center; justify-content: center; gap: .6rem; padding: .9rem .9rem; overflow: hidden; color: #fff; white-space: nowrap; font-size: .95rem; background: linear-gradient(135deg, var(--c2, var(--rg-blue2)), var(--c1, var(--rg-blue))); border: 0; border-radius: .6rem; font: inherit; font-weight: 800; cursor: pointer; text-decoration: none; box-shadow: 0 .6rem 1.2rem color-mix(in srgb, var(--c1, var(--rg-blue)) 30%, transparent); transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
     .rg-btn::after { content: ''; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgb(255 255 255 / .45), transparent); transform: skewX(-20deg); transition: left .6s ease; }
@@ -226,7 +228,10 @@
                             <li><i>✓</i>Agihan ikut nisbah modal</li>
                             <li><i>✓</i>Potensi pendapatan lebih besar</li>
                         </ul>
-                        @if ($partnershipOpen)
+                        @if ($partnershipFull)
+                            <p class="rg-note rg-closed">Pendaftaran ditutup — modal terkumpul telah mencapai RM{{ number_format((float) $partnershipSettings->max_total_capital) }}.</p>
+                            <span class="rg-btn" aria-disabled="true">Pendaftaran ditutup</span>
+                        @elseif ($partnershipOpen)
                             <a class="rg-btn" href="{{ route('partner.register') }}" data-ripple @click.stop>Daftar sebagai Partnership <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></a>
                         @else
                             <p class="rg-note">Pendaftaran Partnership belum diaktifkan.</p>
@@ -291,7 +296,10 @@
                         <li>Permohonan disemak oleh pasukan kami</li>
                         <li>Tambah modal (min. RM{{ number_format((float) $partnershipSettings->min_capital) }}) melalui Billplz</li>
                     </ol>
-                    @if ($partnershipOpen)
+                    @if ($partnershipFull)
+                        <p class="rg-note rg-closed" style="margin-top: 1rem;">Pendaftaran ditutup — modal terkumpul telah mencapai RM{{ number_format((float) $partnershipSettings->max_total_capital) }}.</p>
+                        <a class="rg-login" href="{{ route('partner.login') }}">Sudah berdaftar? Log masuk Partnership →</a>
+                    @elseif ($partnershipOpen)
                         <a class="rg-btn" style="--c1: var(--rg-green); --c2: var(--rg-green2); margin-top: 1rem;" href="{{ route('partner.register') }}" data-ripple>Daftar Partnership <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></a>
                         <a class="rg-login" href="{{ route('partner.login') }}">Sudah berdaftar? Log masuk Partnership →</a>
                     @else
