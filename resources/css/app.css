@@ -1398,6 +1398,8 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .bw-main > .bw-cost { grid-column: 1 / -1; margin: 0 0 .25rem; }
 .bw-addons { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
 .bw-addon-note { color: var(--acc); font-size: .74rem; font-style: normal; font-weight: 700; }
+.bw-pkg-detail { display: grid; gap: .75rem; padding: 1rem; background: #f7fbfe; border: 1px solid var(--bw-line); border-radius: 1rem; }
+.bw-pkg-detail .bw-cost-includes, .bw-pkg-detail .pkg-suit { margin: 0; }
 .bw-ctx-cost { display: flex; justify-content: space-between; gap: .5rem; margin: .6rem 0 0; padding-top: .6rem; border-top: 1px dashed var(--bw-line); font-size: .85rem; }
 .bw-ctx-cost b { color: var(--acc); }
 
