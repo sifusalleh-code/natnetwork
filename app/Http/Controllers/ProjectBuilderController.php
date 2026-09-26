@@ -76,6 +76,9 @@ class ProjectBuilderController extends Controller
         $session->update([
             'entry_path' => $data['entry_path'],
             'service_package_id' => $data['entry_path'] === 'GUIDED' ? null : ($package?->id ?? $session->service_package_id),
+            // Pakej sudah disahkan terus daripada halaman Services (bukan pilih dalam wizard):
+            // langkau langkah "Model" (jenis projek + pilih pakej), terus ke langkah "Gaya".
+            'current_step' => $package ? 1 : $session->current_step,
         ]);
         if ($client = $request->user('client')) {
             $builder->linkClient($session, $client);

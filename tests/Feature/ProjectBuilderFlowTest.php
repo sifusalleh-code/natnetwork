@@ -44,7 +44,21 @@ class ProjectBuilderFlowTest extends TestCase
         $this->get(route('builder.start', ['package' => $package->slug]))->assertOk()->assertSee('Pakej pilihan anda')->assertSee('Landing Page')->assertSee('Hero section')->assertSee('Basic on-page SEO');
         $this->post(route('builder.entry'), ['entry_path' => 'DIRECT_SELECTION', 'package' => $package->slug])->assertRedirect(route('builder.start'));
 
-        $this->assertDatabaseHas('builder_sessions', ['entry_path' => 'DIRECT_SELECTION', 'service_package_id' => $package->id]);
+        // Pakej sudah disahkan terus daripada Services: langkah "Model" dilangkau, terus ke "Gaya" (index 1).
+        $this->assertDatabaseHas('builder_sessions', ['entry_path' => 'DIRECT_SELECTION', 'service_package_id' => $package->id, 'current_step' => 1]);
+    }
+
+    public function test_direct_selection_without_preset_package_still_starts_at_model_step(): void
+    {
+        $this->seed();
+
+        // "Saya Dah Tahu" tanpa pakej pra-pilih (tiada ?package= dari Services): pelanggan masih
+        // perlu pilih pakej sendiri dalam wizard, jadi langkah "Model" TIDAK dilangkau.
+        $this->post(route('builder.entry'), ['entry_path' => 'DIRECT_SELECTION'])->assertRedirect(route('builder.start'));
+
+        $session = \App\Engines\Sales\Models\BuilderSession::query()->firstOrFail();
+        $this->assertSame('DIRECT_SELECTION', $session->entry_path);
+        $this->assertNull($session->current_step);
     }
 
     public function test_viewing_the_builder_does_not_create_a_session_record(): void
