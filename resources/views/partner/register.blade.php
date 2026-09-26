@@ -20,9 +20,17 @@
     'bank' => '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
     'alert' => '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
     'list' => '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    'phone' => '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+    'building' => '<path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M2 21h20M8 8h3M8 12h3M8 16h3"/>',
+    'wallet' => '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><circle cx="12" cy="14.5" r="2"/><path d="M7 6l3-3h4l3 3"/>',
+    'bolt' => '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+    'headset' => '<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-1.8 2.5-4.5 2.5"/>',
+    'chevron' => '<path d="m6 9 6 6 6-6"/>',
 ])
 @php($svg = fn (string $name, string $class = '') => '<svg class="'.$class.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'.$pIcon[$name].'</svg>')
-<section @class(['auth-card', 'pship', 'is-closed' => $full]) :class="{ 'is-hero': step === 1 || step === 2 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
+<section @class(['auth-card', 'pship', 'is-closed' => $full]) :class="{ 'is-hero': step === 1 || step === 2, 'is-s3': step === 3 }" x-data="{ step: {{ $startStep }}, agree: {{ $errors->any() || $pending ? 'true' : 'false' }}, type: '{{ old('id_type', $pending['id_type'] ?? 'IC') }}' }">
     <div class="pship-main">
     <p class="eyebrow">Program Partnership</p>
 
@@ -93,49 +101,61 @@
         </div>
 
         {{-- Langkah 3: Maklumat & bayaran --}}
-        <div x-show="step === 3" x-cloak>
+        <div x-show="step === 3" x-cloak class="pship-s3">
             @if (! $pending)
-                <h1 x-ref="s3" tabindex="-1">Maklumat pendaftaran</h1>
-                <p class="lead">Isi maklumat asas dan amaun modal. Maklumat IC dan akaun bank diisi selepas bayaran berjaya.</p>
-                <form method="post" action="{{ route('partner.register.send') }}" class="form-stack">
+                <h1 class="pship-s3-title" x-ref="s3" tabindex="-1">Maklumat pendaftaran</h1>
+                <p class="pship-s3-lead">Isi maklumat asas dan amaun modal. Maklumat IC dan akaun bank diisi selepas bayaran berjaya.</p>
+                <form method="post" action="{{ route('partner.register.send') }}" class="pship-form">
                     @csrf
                     <input type="hidden" name="agree" :value="agree ? '1' : ''">
                     @error('agree')<p class="form-error">{{ $message }}</p>@enderror
-                    <label>Nama penuh<input name="name" value="{{ old('name') }}" required maxlength="255" autocomplete="name"></label>
+                    @error('registration')<p class="form-error">{{ $message }}</p>@enderror
+                    <label class="pship-label">Nama penuh
+                        <span class="pship-field"><span class="pship-field-ic">{!! $svg('user') !!}</span><input name="name" value="{{ old('name') }}" required maxlength="255" autocomplete="name" placeholder="Masukkan nama penuh anda"></span>
+                    </label>
                     @error('name')<p class="form-error">{{ $message }}</p>@enderror
-                    <div class="form-grid-2">
-                        <label>Emel<input name="email" type="email" value="{{ old('email') }}" required maxlength="255" autocomplete="email"></label>
-                        <label>No. Telefon / WhatsApp<input name="phone" type="tel" value="{{ old('phone') }}" required maxlength="50" autocomplete="tel"></label>
+                    <div class="pship-grid-2">
+                        <label class="pship-label">Emel
+                            <span class="pship-field"><span class="pship-field-ic">{!! $svg('mail') !!}</span><input name="email" type="email" value="{{ old('email') }}" required maxlength="255" autocomplete="email" placeholder="contoh: anda@email.com"></span>
+                        </label>
+                        <label class="pship-label">No. Telefon / WhatsApp
+                            <span class="pship-field"><span class="pship-field-ic">{!! $svg('phone') !!}</span><input name="phone" type="tel" value="{{ old('phone') }}" required maxlength="50" autocomplete="tel" placeholder="contoh: 012-345 6789"></span>
+                        </label>
                     </div>
                     @error('email')<p class="form-error">{{ $message }}</p>@enderror
                     @error('phone')<p class="form-error">{{ $message }}</p>@enderror
-                    <label>Jenis penyertaan
-                        <select name="id_type" x-model="type"><option value="IC">Individu</option><option value="COMPANY">Syarikat</option></select>
+                    <label class="pship-label">Jenis penyertaan
+                        <span class="pship-field is-select"><span class="pship-field-ic">{!! $svg('users') !!}</span><select name="id_type" x-model="type"><option value="IC">Individu</option><option value="COMPANY">Syarikat</option></select><span class="pship-chev">{!! $svg('chevron') !!}</span></span>
                     </label>
-                    <label x-show="type === 'COMPANY'" x-cloak>Nama syarikat<input name="company_name" value="{{ old('company_name') }}" maxlength="255" :required="type === 'COMPANY'"></label>
+                    <label class="pship-label" x-show="type === 'COMPANY'" x-cloak>Nama syarikat
+                        <span class="pship-field"><span class="pship-field-ic">{!! $svg('building') !!}</span><input name="company_name" value="{{ old('company_name') }}" maxlength="255" :required="type === 'COMPANY'" placeholder="Nama syarikat berdaftar"></span>
+                    </label>
                     @error('company_name')<p class="form-error">{{ $message }}</p>@enderror
-                    <label>Amaun modal (RM) <small>Minimum RM{{ number_format($minCapital, 2) }}</small>
-                        <input name="amount" type="number" step="0.01" min="{{ $minCapital }}" max="{{ (float) $settings->max_total_capital }}" value="{{ old('amount', $minCapital) }}" required inputmode="decimal">
+                    <label class="pship-label">Amaun modal (RM)
+                        <span class="pship-amount"><span class="pship-amount-ic">{!! $svg('wallet') !!}</span><span class="pship-amount-in"><small>Minimum RM{{ number_format($minCapital, 2) }}</small><input name="amount" type="number" step="0.01" min="{{ $minCapital }}" max="{{ (float) $settings->max_total_capital }}" value="{{ old('amount', $minCapital) }}" required inputmode="decimal"></span></span>
                     </label>
                     @error('amount')<p class="form-error">{{ $message }}</p>@enderror
-                    <div class="button-row">
-                        <button type="button" class="button button-secondary" @click="step = 2">Kembali</button>
-                        <button class="button" type="submit">Sahkan emel &amp; teruskan ke bayaran</button>
+                    <div class="pship-actions is-inline">
+                        <button type="button" class="button button-secondary pship-back" @click="step = 2">{!! $svg('arrow-left') !!} Kembali</button>
+                        <button class="button pship-cta" type="submit">Sahkan emel &amp; teruskan ke bayaran {!! $svg('arrow') !!}</button>
                     </div>
                 </form>
             @else
-                <h1>Sahkan emel anda</h1>
-                <p class="lead">Kod enam digit telah dihantar ke <b>{{ $pending['email'] }}</b>. Selepas disahkan, anda akan terus ke bayaran modal.</p>
+                <h1 class="pship-s3-title">Sahkan emel anda</h1>
+                <p class="pship-s3-lead">Kod enam digit telah dihantar ke <b>{{ $pending['email'] }}</b>. Selepas disahkan, anda akan terus ke bayaran modal.</p>
                 <dl class="nn-summary">
                     <div><dt>Nama</dt><dd>{{ $pending['name'] }}</dd></div>
                     <div><dt>Penyertaan</dt><dd>{{ $pending['id_type'] === 'COMPANY' ? 'Syarikat · '.($pending['company_name'] ?? '') : 'Individu' }}</dd></div>
                     <div class="nn-total"><dt>Modal</dt><dd>RM {{ number_format((float) $pending['amount'], 2) }}</dd></div>
                 </dl>
-                <form method="post" action="{{ route('partner.register.verify') }}" class="form-stack">
+                <form method="post" action="{{ route('partner.register.verify') }}" class="pship-form">
                     @csrf
-                    <label>Kod enam digit<input name="code" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" required autofocus></label>
+                    <label class="pship-label">Kod enam digit
+                        <span class="pship-field"><span class="pship-field-ic">{!! $svg('lock') !!}</span><input name="code" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" required autofocus placeholder="000000"></span>
+                    </label>
                     @error('code')<p class="form-error">{{ $message }}</p>@enderror
-                    <button class="button" type="submit">Sahkan &amp; teruskan ke bayaran</button>
+                    @error('registration')<p class="form-error">{{ $message }}</p>@enderror
+                    <div class="pship-actions is-inline"><button class="button pship-cta" type="submit">Sahkan &amp; teruskan ke bayaran {!! $svg('arrow') !!}</button></div>
                 </form>
                 <form method="post" action="{{ route('partner.register.cancel') }}" style="margin-top: .75rem;">@csrf<button type="submit" class="button button-secondary button-compact">Tukar maklumat</button></form>
             @endif
@@ -158,6 +178,19 @@
                     <li><span class="pship-ic is-blue">{!! $svg('chart') !!}</span><b>Prestasi Dipantau</b><small>Laporan prestasi berkala untuk memastikan pertumbuhan stabil dan konsisten.</small></li>
                 </ul>
             </div>
+        </aside>
+        <aside class="pship-s3-aside" x-show="step === 3" x-cloak aria-label="Maklumat pendaftaran Partnership">
+            <p class="eyebrow">Program Partnership</p>
+            <h2 class="pship-title">Maklumat <span>pendaftaran</span></h2>
+            <p class="pship-lead">Isi maklumat asas dan amaun modal untuk melengkapkan pendaftaran. Maklumat IC dan akaun bank akan diisi selepas bayaran berjaya.</p>
+            <ul class="pship-s3-points">
+                <li><span class="pship-ic is-soft">{!! $svg('shield') !!}</span><span><b>Proses selamat</b><small>Maklumat anda dilindungi dengan teknologi keselamatan terkini.</small></span></li>
+                <li><span class="pship-ic is-soft">{!! $svg('bolt') !!}</span><span><b>Mudah dan cepat</b><small>Lengkapkan pendaftaran dalam beberapa minit sahaja.</small></span></li>
+                <li><span class="pship-ic is-soft">{!! $svg('doc') !!}</span><span><b>Maklumat jelas</b><small>Maklumat IC dan akaun bank diisi selepas bayaran disahkan.</small></span></li>
+                <li><span class="pship-ic is-soft">{!! $svg('headset') !!}</span><span><b>Sokongan penuh</b><small>Pasukan kami sedia membantu jika anda memerlukan bantuan.</small></span></li>
+            </ul>
+            <img class="pship-s3-script" src="{{ asset('images/partnership/satu-platform.png') }}" alt="Satu Platform Pelbagai Peluang" width="205" height="104" loading="lazy">
+            <img class="pship-s3-desk" src="{{ asset('images/partnership/partnership-desk.webp') }}" alt="Komputer riba NatNetwork Partner di atas meja dengan buku Partnership, Growth, Success" width="641" height="285" loading="lazy">
         </aside>
         <aside class="pship-aside" x-show="step === 2" x-cloak aria-label="Kenapa perlu baca terma">
             <img class="pship-photo is-sharp" src="{{ asset('images/partnership/partnership-terms.webp') }}" alt="Komputer riba memaparkan Terma &amp; Syarat Program Partnership NatNetwork" width="610" height="490" loading="lazy">

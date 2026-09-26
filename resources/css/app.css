@@ -1446,7 +1446,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .spec-reset-confirm { background: #b42318; border-color: #b42318; }
 .spec-reset-confirm:hover { background: #912018; border-color: #912018; }
 /* Partnership — langkah 1 (premium) */
-.auth-page.is-wide:has(.pship.is-hero) { max-width: 90rem; }
+.auth-page.is-wide:has(.pship.is-hero), .auth-page.is-wide:has(.pship.is-s3) { max-width: 90rem; }
 .pship.is-hero { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 2.5rem); padding: clamp(1.5rem, 3.5vw, 2.75rem) 0 clamp(1.5rem, 3.5vw, 2.75rem) clamp(1.5rem, 3.5vw, 3.25rem); overflow: hidden; border-radius: 1.5rem; box-shadow: 0 24px 60px rgb(15 50 90 / .10); }
 .pship.is-hero .eyebrow { letter-spacing: .22em; }
 .pship.is-hero .nn-steps { margin-bottom: 2rem; }
@@ -1524,3 +1524,54 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .pship-closed svg { width: 1rem; height: 1rem; }
 .pship-closed-note { margin: 0 0 1rem; padding: .85rem 1rem; color: #7a1c14; background: #fef3f2; border: 1px solid #f3c3bd; border-radius: .9rem; font-weight: 600; }
 .pship.is-closed .pship-capital { opacity: .7; }
+
+/* Partnership — langkah 3 (premium) */
+.pship.is-s3 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); padding: 0; overflow: hidden; border-radius: 1.5rem; box-shadow: 0 24px 60px rgb(15 50 90 / .10); }
+.pship.is-s3 .pship-main { grid-column: 2; grid-row: 1; padding: clamp(1.5rem, 3.2vw, 2.75rem) clamp(1.5rem, 3.2vw, 3rem); }
+.pship-s3-aside { position: relative; grid-column: 1; grid-row: 1; display: flex; flex-direction: column; padding: clamp(1.5rem, 3.5vw, 3.5rem) clamp(1.5rem, 3.5vw, 3rem) 0; background: radial-gradient(120% 70% at 80% 55%, #ffffff 0%, rgb(255 255 255 / 0) 60%), linear-gradient(180deg, #f3f8fe 0%, #e9f2fc 100%); border-right: 1px solid #e3edf8; }
+.pship-s3-aside .eyebrow { letter-spacing: .22em; }
+.pship-s3-aside .pship-title { margin-top: .25rem; }
+.pship-s3-points { position: relative; z-index: 1; display: grid; gap: 1.25rem; max-width: 22rem; margin: .25rem 0 0; padding: 0; list-style: none; }
+.pship-s3-points li { display: flex; gap: 1rem; align-items: flex-start; }
+.pship-s3-points .pship-ic { width: 3.2rem; height: 3.2rem; background: #fff; box-shadow: 0 6px 16px rgb(15 50 90 / .08); }
+.pship-s3-points .pship-ic svg { width: 1.45rem; height: 1.45rem; }
+.pship-s3-points b { display: block; color: #0d2240; font-size: 1rem; }
+.pship-s3-points small { display: block; margin-top: .15rem; color: #4a5d76; font-size: .9rem; line-height: 1.45; }
+.pship-s3-script { position: absolute; z-index: 1; right: clamp(1rem, 4vw, 3.5rem); top: 57%; width: min(13rem, 34%); height: auto; transform: translateY(-50%); pointer-events: none; }
+.pship-s3-desk { display: block; width: calc(100% + 2 * clamp(1.5rem, 3.5vw, 3rem)); max-width: none; height: auto; margin: auto calc(-1 * clamp(1.5rem, 3.5vw, 3rem)) 0; padding-top: 1rem; -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%); mask-image: linear-gradient(180deg, transparent 0, #000 22%); }
+.pship-s3-title { margin: 0 0 .6rem; color: #0d2240; font-size: clamp(1.8rem, 3vw, 2.4rem) !important; font-weight: 900; letter-spacing: -.02em; }
+.pship-s3-title:focus { outline: none; }
+.pship-s3-lead { margin: 0 0 1.4rem; color: #5b6b80; font-size: 1.02rem; line-height: 1.6; }
+.pship-form { display: grid; gap: .9rem; }
+.pship-label { display: grid; gap: .5rem; color: #0d2240; font-size: .98rem; font-weight: 800; }
+.pship-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
+.pship-field { position: relative; display: flex; align-items: stretch; min-height: 3.1rem; background: #fff; border: 1px solid #c9dcf0; border-radius: .7rem; transition: border-color .15s ease, box-shadow .15s ease; }
+.pship-field:focus-within { border-color: #0b6fe0; box-shadow: 0 0 0 4px rgb(11 111 224 / .12); }
+.pship-field-ic { display: grid; flex: none; width: 3rem; place-items: center; color: #0b6fe0; border-right: 1px solid #dbe7f4; }
+.pship-field-ic svg { width: 1.25rem; height: 1.25rem; }
+.pship-field input, .pship-field select { flex: 1; min-width: 0; padding: .7rem .85rem; color: #0d2240; background: transparent; border: 0; border-radius: 0 .7rem .7rem 0; font: inherit; font-size: .98rem; font-weight: 500; outline: none; appearance: none; -webkit-appearance: none; }
+.pship-field input::placeholder { color: #93a3b8; }
+.pship-field.is-select select { padding-right: 2.6rem; font-weight: 700; cursor: pointer; }
+.pship-chev { position: absolute; top: 50%; right: .9rem; display: grid; color: #0d2240; transform: translateY(-50%); pointer-events: none; }
+.pship-chev svg { width: 1.15rem; height: 1.15rem; }
+.pship-amount { display: flex; gap: .9rem; align-items: flex-end; }
+.pship-amount-ic { display: grid; flex: none; width: 3.6rem; height: 3.6rem; margin-bottom: -.25rem; place-items: center; color: #0b6fe0; background: #e3effd; border-radius: 50%; }
+.pship-amount-ic svg { width: 1.5rem; height: 1.5rem; }
+.pship-amount-in { display: grid; flex: 1; gap: .3rem; }
+.pship-amount-in small { color: #34465c; font-size: .78rem; font-weight: 600; }
+.pship-amount-in input { min-height: 3.1rem; padding: .7rem 1rem; color: #0d2240; background: #fff; border: 1px solid #c9dcf0; border-radius: .7rem; font: inherit; font-size: 1.05rem; font-weight: 600; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+.pship-amount-in input:focus { border-color: #0b6fe0; box-shadow: 0 0 0 4px rgb(11 111 224 / .12); }
+.pship-form .pship-actions { margin-top: .6rem; }
+.pship.is-s3 .pship-cta { padding-inline: 1.5rem; }
+@media (max-width: 64rem) {
+    .pship.is-s3 { grid-template-columns: minmax(0, 1fr); }
+    .pship.is-s3 .pship-main { grid-column: 1; grid-row: 1; }
+    .pship-s3-aside { grid-column: 1; grid-row: 2; border-right: 0; border-top: 1px solid #e3edf8; }
+    .pship-s3-points { max-width: none; }
+    .pship-s3-script { top: auto; bottom: 40%; transform: none; }
+}
+@media (max-width: 40rem) {
+    .pship-grid-2 { grid-template-columns: minmax(0, 1fr); }
+    .pship-s3-script { display: none; }
+    .pship.is-s3 .pship-actions.is-inline { grid-template-columns: minmax(0, 1fr); }
+}

@@ -56,9 +56,11 @@ class PartnershipTest extends TestCase
             ->assertSee('RM5,000')->assertSee('Sokongan penuh daripada pihak syarikat')->assertSee('images/partnership/partnership-hero.webp')
             // Langkah 2 (premium): terma Owner v1.0 lengkap + panel "Kenapa perlu baca terma ini?".
             ->assertSee('Terma dan Syarat Partnership')->assertSee('(versi 1.1)', false)->assertSee('Kenapa perlu baca terma ini?')->assertSee('images/partnership/partnership-terms.webp')
-            ->assertSee('mengumpul modal RM100,000')->assertSee('selama 2 tahun dari tarikh daftar')->assertSee('Pengeluaran keuntungan');
+            ->assertSee('mengumpul modal RM100,000')
+            // Langkah 3 (premium): panel kiri & borang berikon.
+            ->assertSee('Proses selamat')->assertSee('images/partnership/partnership-desk.webp')->assertSee('images/partnership/satu-platform.png')->assertSee('placeholder="Masukkan nama penuh anda"', false)->assertSee('selama 2 tahun dari tarikh daftar')->assertSee('Pengeluaran keuntungan');
         $this->assertCount(9, config('partnership_terms.terms'));
-        foreach (['partnership-hero.webp', 'partnership-terms.webp'] as $img) {
+        foreach (['partnership-hero.webp', 'partnership-terms.webp', 'partnership-desk.webp', 'satu-platform.png'] as $img) {
             $this->assertFileExists(public_path('images/partnership/'.$img));
         }
 
