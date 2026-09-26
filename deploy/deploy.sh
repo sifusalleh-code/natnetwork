@@ -3,11 +3,10 @@
 # Selamat dijalankan berulang kali: .env dan database pelayan dikekalkan.
 # Tidak mengubah konfigurasi Nginx / aplikasi lain (GrowBiz dsb).
 #
-# Keputusan Owner 25 Sep 2026 #2/#4: SQLite (fail tunggal) dipilih sebagai pangkalan data yang
-# paling mudah dan sesuai untuk kegunaan folder tempatan (dev) dan pelayan cloud/VPS ini — tiada
-# server DB berasingan untuk dipasang/diselenggara. Ini menggantikan cadangan MariaDB dalam
-# NATNETWORK_V1_MASTER_SPECIFICATION.md §20 (lihat docs/OWNER_DECISIONS_2026_09_25.md).
-# Sandaran fail database dibuat secara automatik sebelum setiap migrasi (langkah 6/8).
+# Pangkalan data: server production ini SEDIA ADA guna MySQL/MariaDB (DB_CONNECTION di .env).
+# Dev/pembangunan tempatan boleh guna SQLite (paling mudah, tiada server DB berasingan) — kedua-dua
+# disokong; langkah sandaran (6/8) mengesan DB_CONNECTION dan buat mysqldump/salin fail sqlite
+# ikut mana yang benar-benar digunakan. Lihat docs/OWNER_DECISIONS_2026_09_25.md.
 set -euo pipefail
 
 DOMAIN="app.natnetwork.net"
@@ -92,16 +91,34 @@ if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" != "Disabled" ]; t
 fi
 
 step "6/8 Sandaran pangkalan data + Migration + cache"
-# Keputusan Owner 25 Sep 2026 #4: sandaran wajib sebelum migrasi (AGENTS/MS §16). Ringkas: salin fail SQLite.
+# Keputusan Owner 25 Sep 2026 #4: sandaran wajib sebelum migrasi (AGENTS/MS §16).
+# Kaedah sandaran mengikut DB_CONNECTION sebenar dalam .env — jangan andaikan SQLite.
+db_env() { grep -E "^$1=" .env 2>/dev/null | tail -n1 | cut -d '=' -f2- | sed -e 's/^"//' -e 's/"$//'; }
 BACKUP_DIR="$APP_DIR/storage/app/backups"
 mkdir -p "$BACKUP_DIR"
-if [ -s database/database.sqlite ]; then
+DB_CONN="$(db_env DB_CONNECTION)"
+if [ "$DB_CONN" = "mysql" ] || [ "$DB_CONN" = "mariadb" ]; then
+  DB_HOST="$(db_env DB_HOST)"; DB_HOST="${DB_HOST:-127.0.0.1}"
+  DB_PORT="$(db_env DB_PORT)"; DB_PORT="${DB_PORT:-3306}"
+  DB_NAME="$(db_env DB_DATABASE)"
+  DB_USER="$(db_env DB_USERNAME)"
+  DB_PASS="$(db_env DB_PASSWORD)"
+  DUMP_BIN="$(command -v mysqldump || command -v mariadb-dump || true)"
+  if [ -z "$DB_NAME" ] || [ -z "$DUMP_BIN" ]; then
+    echo "AMARAN: DB_DATABASE tiada dalam .env atau mysqldump/mariadb-dump tiada — SANDARAN DILANGKAU. Sahkan secara manual sebelum teruskan."
+  else
+    BACKUP_FILE="$BACKUP_DIR/${DB_NAME}.$(date +%Y%m%d%H%M%S).sql.gz"
+    MYSQL_PWD="$DB_PASS" "$DUMP_BIN" --single-transaction --routines --triggers -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+    echo "Sandaran MySQL/MariaDB sebelum migrasi: $BACKUP_FILE"
+    find "$BACKUP_DIR" -name '*.sql.gz' -mtime +30 -delete
+  fi
+elif [ -s database/database.sqlite ]; then
   BACKUP_FILE="$BACKUP_DIR/database.sqlite.$(date +%Y%m%d%H%M%S).bak"
   cp -a database/database.sqlite "$BACKUP_FILE"
-  echo "Sandaran sebelum migrasi: $BACKUP_FILE"
+  echo "Sandaran SQLite sebelum migrasi: $BACKUP_FILE"
   find "$BACKUP_DIR" -name 'database.sqlite.*.bak' -mtime +30 -delete
-  chown -R "$WEB_USER":"$WEB_USER" "$BACKUP_DIR"
 fi
+chown -R "$WEB_USER":"$WEB_USER" "$BACKUP_DIR" 2>/dev/null || true
 as_web php artisan migrate --force
 as_web php artisan optimize:clear
 as_web php artisan config:cache
