@@ -20,6 +20,7 @@ use Illuminate\View\View;
 class PartnerAuthController extends Controller
 {
     private const PENDING_KEY = 'partner_registration';
+    private const FULL_MESSAGE = 'Pendaftaran Partnership telah ditutup kerana modal terkumpul telah mencapai had yang ditetapkan.';
     public const BANKS = ['Maybank', 'CIMB Bank', 'Public Bank', 'RHB Bank', 'Hong Leong Bank', 'AmBank', 'Bank Islam', 'Bank Rakyat', 'Bank Muamalat', 'Affin Bank', 'Alliance Bank', 'OCBC Bank', 'HSBC Bank', 'UOB Bank', 'Standard Chartered', 'Agrobank', 'BSN', 'MBSB Bank', 'Al Rajhi Bank'];
 
     public function showRegister(Request $request): View|RedirectResponse
@@ -28,11 +29,17 @@ class PartnerAuthController extends Controller
             return redirect()->route('partner.dashboard');
         }
 
+        $settings = PartnerSetting::current();
+        $full = $settings->program_enabled && $settings->registrationFull();
+        if ($full) {
+            $request->session()->forget(self::PENDING_KEY);
+        }
         $pending = $request->session()->get(self::PENDING_KEY);
 
         return view('partner.register', [
-            'settings' => PartnerSetting::current(),
-            'open' => PartnerSetting::current()->program_enabled,
+            'settings' => $settings,
+            'open' => $settings->program_enabled,
+            'full' => $full,
             'pending' => $pending ? decrypt($pending) : null,
         ]);
     }
@@ -42,6 +49,7 @@ class PartnerAuthController extends Controller
     {
         $settings = PartnerSetting::current();
         abort_unless($settings->program_enabled, 404);
+        $this->ensureRegistrationNotFull($settings);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email:filter', 'max:255'],
@@ -84,6 +92,12 @@ class PartnerAuthController extends Controller
         $data = $pending ? decrypt($pending) : null;
         if (! is_array($data)) {
             throw ValidationException::withMessages(['code' => ['Sila isi maklumat pendaftaran terlebih dahulu.']]);
+        }
+
+        if (PartnerSetting::current()->registrationFull()) {
+            $request->session()->forget(self::PENDING_KEY);
+
+            return redirect()->route('partner.register')->withErrors(['registration' => self::FULL_MESSAGE]);
         }
 
         try {
@@ -161,5 +175,12 @@ class PartnerAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('partner.login');
+    }
+
+    private function ensureRegistrationNotFull(PartnerSetting $settings): void
+    {
+        if ($settings->registrationFull()) {
+            throw ValidationException::withMessages(['registration' => [self::FULL_MESSAGE]]);
+        }
     }
 }
