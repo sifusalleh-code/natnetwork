@@ -92,31 +92,17 @@ class BuilderSessionService
     }
 
     /**
-     * Add-on berkesan = add-on dipilih terus (yang ditawarkan oleh pakej) + fungsi berbayar dalam soalan "Fungsi"
-     * (website syarikat) yang tidak termasuk dalam pakej. Fungsi yang termasuk dalam pakej tidak dicaj.
+     * Add-on berkesan = add-on dipilih terus (tick) yang ditawarkan oleh pakej semasa.
+     * Add-on pakej lama digugurkan secara automatik selepas tukar pakej.
      *
      * @return list<int>
      */
     public function effectiveAddonIds(BuilderSession $session): array
     {
         $package = $session->servicePackage()->first();
-        $included = config('builder.package_includes.'.($package?->slug ?? ''), []);
-        $answers = $this->answers($session);
-        $functions = ($answers['project_type'] ?? null) === 'company-website' ? (array) ($answers['website_functions'] ?? []) : [];
-        $map = config('builder.function_addons', []);
-        $slugs = collect($functions)->reject(fn ($f) => in_array($f, $included, true))->map(fn ($f) => $map[$f] ?? null)->filter()->unique()->values()->all();
-        $derived = $slugs ? \App\Engines\Pricing\Models\Addon::query()->whereIn('slug', $slugs)->where('is_active', true)->pluck('id')->all() : [];
-        // Add-on yang dipetakan kepada fungsi yang termasuk dalam pakej tidak dicaj walaupun dipilih terus.
-        $includedAddonSlugs = collect($included)->map(fn ($f) => $map[$f] ?? null)->filter()->all();
-        $includedIds = $includedAddonSlugs ? \App\Engines\Pricing\Models\Addon::query()->whereIn('slug', $includedAddonSlugs)->pluck('id')->all() : [];
-        // Website syarikat: add-on yang dipetakan kepada fungsi hanya dikira melalui soalan Fungsi (satu sumber).
-        $mappedIds = $functions !== [] || ($answers['project_type'] ?? null) === 'company-website'
-            ? \App\Engines\Pricing\Models\Addon::query()->whereIn('slug', array_values($map))->pluck('id')->all() : [];
-        // Add-on dipilih terus mestilah ditawarkan oleh pakej semasa (add-on pakej lama digugurkan selepas tukar pakej).
         $offeredIds = $package ? \App\Engines\Pricing\Models\PackageAddon::query()->where('service_package_id', $package->id)->where('is_active', true)->pluck('addon_id')->all() : [];
-        $explicit = array_intersect(array_diff(array_map('intval', $session->addon_ids ?? []), $includedIds, $mappedIds), $offeredIds);
 
-        return array_values(array_unique(array_merge($explicit, array_map('intval', $derived))));
+        return array_values(array_intersect(array_map('intval', $session->addon_ids ?? []), $offeredIds));
     }
 
     public function isVerifiedFor(BuilderSession $session, ?User $customer): bool

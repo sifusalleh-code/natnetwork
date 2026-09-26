@@ -1397,13 +1397,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .bw-cost.is-top { margin: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 2rem) 0; }
 .bw-main > .bw-cost { grid-column: 1 / -1; margin: 0 0 .25rem; }
 .bw-addons { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
-.bw-fn-badge { margin-left: .35rem; padding: .05rem .45rem; border-radius: 99px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
-.bw-fn-badge.is-included { color: #0f7a4a; background: #e3f7ee; }
-.bw-fn-badge.is-paid { color: var(--acc); background: var(--acc-soft); }
-.bw-addon.is-included { cursor: default; background: #f3faf6; border-color: #bfe9d6; }
-.bw-addon.is-included .bw-addon-price { color: #0f7a4a; }
 .bw-addon-note { color: var(--acc); font-size: .74rem; font-style: normal; font-weight: 700; }
-.bw-addon.is-included .bw-addon-note { color: #0f7a4a; }
 .bw-ctx-cost { display: flex; justify-content: space-between; gap: .5rem; margin: .6rem 0 0; padding-top: .6rem; border-top: 1px dashed var(--bw-line); font-size: .85rem; }
 .bw-ctx-cost b { color: var(--acc); }
 

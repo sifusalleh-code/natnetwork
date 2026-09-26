@@ -25,14 +25,12 @@ class ProjectBuilderFlowTest extends TestCase
         $package = ServicePackage::query()->where('slug', 'e-commerce-starter')->firstOrFail();
         $this->post(route('builder.save'), ['service_package_id' => $package->id, 'answers' => [
             'project_type' => 'online-store',
-            'ecommerce_product_quantity' => '1-100',
-            'ecommerce_functions' => ['cart', 'payment'],
             'content_logo' => 'available',
         ]])->assertRedirect(route('builder.start'));
 
         $session = BuilderSession::query()->firstOrFail();
         $this->assertSame('GUIDED', $session->entry_path);
-        $this->assertSame(['cart', 'payment'], $session->answers()->whereHas('question', fn ($query) => $query->where('code', 'ecommerce_functions'))->firstOrFail()->value);
+        $this->assertSame(['online-store'], $session->answers()->whereHas('question', fn ($query) => $query->where('code', 'project_type'))->firstOrFail()->value);
     }
 
     public function test_a_public_package_link_preselects_the_direct_builder_path(): void
@@ -129,20 +127,19 @@ class ProjectBuilderFlowTest extends TestCase
         $blog = \App\Engines\Pricing\Models\Addon::query()->where('slug', 'blog-news')->value('id');
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['project_type' => 'company-website'], 'step' => 1])->assertOk()->assertJson(['saved' => true, 'total_cents' => 250000]);
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['colour_preference' => 'lain-lain', 'colour_custom' => '#12AB34', 'content_domain' => 'have-domain', 'domain_name' => 'contoh.com.my', 'content_images' => ['product-photos', 'people-photos']], 'step' => 3])->assertOk();
-        // Fungsi berbayar dalam soalan Fungsi = add-on (satu sumber); add-on terpeta yang dihantar terus diabaikan.
-        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['content_images' => [], 'website_functions' => ['blog-news', 'maps']], 'addon_ids' => [$blog], 'step' => 4])->assertOk()->assertJson(['total_cents' => 300000]);
+        // Add-on ditick terus dalam langkah "Add-on", ikut pakej dipilih (satu sumber, tiada soalan Fungsi).
+        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['content_images' => []], 'addon_ids' => [$blog], 'step' => 4])->assertOk()->assertJson(['total_cents' => 300000]);
         $page = \App\Engines\Pricing\Models\Addon::query()->where('slug', 'additional-page')->value('id');
-        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => [$page]])->assertOk()->assertJson(['total_cents' => 335000]); // Starter: Additional page RM350
+        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => [$blog, $page]])->assertOk()->assertJson(['total_cents' => 335000]); // Starter: Blog RM500 + Additional page RM350
         $corporate = ServicePackage::query()->where('slug', 'corporate-website')->value('id');
-        $this->postJson(route('builder.save'), ['service_package_id' => $corporate, 'addon_ids' => [$page]])->assertOk()->assertJson(['total_cents' => 740000]); // Blog termasuk dalam Corporate; Additional page RM500 ikut pakej
-        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['website_functions' => []]])->assertOk();
+        $this->postJson(route('builder.save'), ['service_package_id' => $corporate, 'addon_ids' => [$page]])->assertOk()->assertJson(['total_cents' => 740000]); // Blog tidak ditawarkan oleh Corporate (diabaikan); Additional page RM500 ikut pakej
         // Add-on yang tidak ditawarkan oleh pakej diabaikan; add-on bulanan tidak dicampur dalam jumlah.
         $advancedCms = \App\Engines\Pricing\Models\Addon::query()->where('slug', 'advanced-cms')->value('id');
         $maintenance = \App\Engines\Pricing\Models\Addon::query()->where('slug', 'maintenance-plan')->value('id');
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => [$advancedCms, $maintenance]])->assertOk()->assertJson(['total_cents' => 250000]);
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => [999999]])->assertStatus(422)->assertJsonValidationErrors('addon_ids.0');
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['project_type' => '']])->assertStatus(422)->assertJsonValidationErrors('answers.project_type');
-        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => []])->assertOk()->assertJson(['total_cents' => 250000]); // buang add-on & fungsi berbayar
+        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'addon_ids' => []])->assertOk()->assertJson(['total_cents' => 250000]); // buang add-on
 
         $session = BuilderSession::query()->firstOrFail();
         $answers = app(\App\Engines\Sales\Services\BuilderSessionService::class)->answers($session);

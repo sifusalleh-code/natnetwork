@@ -135,10 +135,7 @@ class MasterSpecificationService
     private function technicalMapping(BuilderSession $builder): array
     {
         $answerCodes = $builder->answers->mapWithKeys(fn ($answer) => [$answer->question->code => $answer->value])->all();
-        $mapping = ['builder_answer_codes' => $answerCodes];
-        if (in_array('customer-login', $answerCodes['website_functions'] ?? [], true)) {
-            $mapping['customer_login'] = ['authentication', 'role/profile', 'persistence', 'authorization', 'admin management'];
-        }
-        return $mapping;
+
+        return ['builder_answer_codes' => $answerCodes];
     }
 }
