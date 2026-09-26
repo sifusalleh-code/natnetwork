@@ -42,7 +42,7 @@ class PartnershipTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin, 'admin')->put(route('admin.partners.settings'), ['pool_percent' => 10, 'min_capital' => 5000, 'max_total_capital' => 100000, 'program_enabled' => '1'])->assertSessionHasNoErrors();
         $this->assertTrue(PartnerSetting::current()->program_enabled);
-        $this->get('/register')->assertSee('Daftar Partnership');
+        $this->get('/register')->assertSee('Daftar sebagai Partnership');
     }
 
     public function test_partnership_flow_terms_register_pay_complete_profile_dashboard(): void
