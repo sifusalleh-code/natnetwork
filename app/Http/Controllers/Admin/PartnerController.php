@@ -90,6 +90,11 @@ class PartnerController extends Controller
         $skipped = 0;
 
         if ($data['action'] === 'delete') {
+            // Modal SANDBOX partner ini dibersih dahulu (Keputusan #2) supaya partner yang HANYA
+            // ada modal ujian benar-benar padam, bukan dilangkau.
+            foreach ($ids as $id) {
+                $this->purgePartnerSandboxFootprint($id);
+            }
             $result = $this->deleteEligible(Partner::class, $ids);
             foreach ($result['deleted'] as $id) {
                 $audit->record('ACCOUNT_DELETED', $admin, null, null, ['model' => 'Partner', 'id' => $id]);
