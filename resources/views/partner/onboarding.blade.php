@@ -21,12 +21,12 @@
     <aside class="ppay-side" aria-label="Maklumat bayaran modal">
         <span class="ppay-pill">PROGRAM PARTNERSHIP</span>
         <h2 class="ppay-title">Bayaran Modal <span>Penyediaan Perkhidmatan Hosting &amp; Domain</span></h2>
-        <p class="ppay-lead">Selesaikan bayaran untuk mengaktifkan penyertaan anda. Perkhidmatan hosting dan domain akan disediakan selepas bayaran disahkan.</p>
+        <p class="ppay-lead">Modal partnership digunakan untuk penyediaan perkhidmatan hosting dan domain kepada pelanggan NatNetwork — bagi mengembangkan skop perniagaan, meneroka permintaan pasaran dan meningkatkan potensi keuntungan.</p>
         <ul class="ppay-points">
-            <li><span class="ppay-ic">{!! $svg('server') !!}</span><span><b>Hosting Berprestasi Tinggi</b><small>Laman web anda dihoskan menggunakan server yang stabil dan selamat.</small></span></li>
-            <li><span class="ppay-ic">{!! $svg('globe') !!}</span><span><b>Domain .com</b><small>Pendaftaran domain untuk jenama anda sendiri.</small></span></li>
-            <li><span class="ppay-ic">{!! $svg('gear') !!}</span><span><b>Persediaan Lengkap</b><small>Kami uruskan pemasangan, konfigurasi dan tetapan asas.</small></span></li>
-            <li><span class="ppay-ic">{!! $svg('shield') !!}</span><span><b>Sokongan Penuh</b><small>Pasukan teknikal kami sedia membantu selepas perkhidmatan diaktifkan.</small></span></li>
+            <li><span class="ppay-ic">{!! $svg('server') !!}</span><span><b>Hosting Berprestasi Tinggi</b><small>Laman web pelanggan dihoskan menggunakan server yang stabil dan selamat.</small></span></li>
+            <li><span class="ppay-ic">{!! $svg('globe') !!}</span><span><b>Domain .com</b><small>Pendaftaran domain untuk jenama pelanggan.</small></span></li>
+            <li><span class="ppay-ic">{!! $svg('gear') !!}</span><span><b>Persediaan Lengkap</b><small>Pemasangan, konfigurasi dan tetapan asas diuruskan untuk pelanggan.</small></span></li>
+            <li><span class="ppay-ic">{!! $svg('shield') !!}</span><span><b>Sokongan Penuh</b><small>Pasukan teknikal menyokong pelanggan selepas perkhidmatan diaktifkan.</small></span></li>
         </ul>
         <img class="ppay-photo" src="{{ asset('images/partnership/partnership-hosting.webp') }}" alt="Komputer riba memaparkan WWW di sebelah pelayan dan blok Domain, Hosting, Setup, Support" width="600" height="318" loading="lazy">
     </aside>
