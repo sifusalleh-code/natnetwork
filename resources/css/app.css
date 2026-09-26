@@ -325,17 +325,21 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .pkg-icon { flex: none; display: grid; place-items: center; width: 3.6rem; height: 3.6rem; color: var(--s-blue); background: var(--s-light); border-radius: .7rem; }
 .pkg-icon .z-icon { width: 1.55rem; height: 1.55rem; }
 .pkg-card h3 { margin: 0; font-size: 1.22rem; font-weight: 800; line-height: 1.25; letter-spacing: -.015em; overflow-wrap: anywhere; }
-.pkg-desc { margin: 0 0 .75rem; color: var(--s-muted); font-size: .9rem; }
-.pkg-features { columns: 2; column-gap: 1.6rem; column-rule: 1px dashed var(--s-border); margin: 0 0 1.1rem; padding: 0 0 1.1rem; list-style: none; border-bottom: 1px dashed var(--s-border); }
+/* Fallback (bukan hex baharu) untuk --s-* apabila .pkg-* dipakai di luar .svc-page (contoh: Start Project). */
+.pkg-desc { margin: 0 0 .75rem; color: var(--s-muted, #64748b); font-size: .9rem; }
+.pkg-features { columns: 2; column-gap: 1.6rem; column-rule: 1px dashed var(--s-border, #dce8f2); margin: 0 0 1.1rem; padding: 0 0 1.1rem; list-style: none; border-bottom: 1px dashed var(--s-border, #dce8f2); }
 .pkg-features li { break-inside: avoid; margin-bottom: .6rem; overflow-wrap: break-word; }
 .pkg-features li > span { min-width: 0; overflow-wrap: break-word; }
 @media (max-width: 26rem) { .pkg-features { columns: 1; } }
-.pkg-features li { display: flex; align-items: flex-start; gap: .55rem; color: var(--s-text); font-size: .88rem; line-height: 1.4; }
+.pkg-features li { display: flex; align-items: flex-start; gap: .55rem; color: var(--s-text, #17324d); font-size: .88rem; line-height: 1.4; }
 .pkg-features li::first-letter { text-transform: uppercase; }
-.pkg-check { width: 1.05rem; height: 1.05rem; margin-top: .1rem; padding: .15rem; color: #fff; background: var(--s-blue); border-radius: 50%; stroke-width: 3; }
+.pkg-check { width: 1.05rem; height: 1.05rem; margin-top: .1rem; padding: .15rem; color: #fff; background: var(--s-blue, #0878c9); border-radius: 50%; stroke-width: 3; }
 .pkg-meta { display: grid; gap: .3rem; margin: 0 0 1rem; padding: 0; list-style: none; }
 .pkg-meta li { display: flex; align-items: flex-start; gap: .55rem; color: var(--s-muted); font-size: .85rem; line-height: 1.4; }
 .pkg-meta-icon { width: .95rem; height: .95rem; margin-top: .1rem; color: var(--s-blue); }
+.pkg-suit { margin: 0 0 1rem; padding: .65rem .8rem; color: var(--s-text, #17324d); background: var(--s-light, #eaf4fb); border-radius: .6rem; font-size: .84rem; line-height: 1.45; }
+.pkg-suit b { color: var(--s-blue, #0878c9); }
+.pkg-wide .pkg-suit { margin: .6rem 0 0; }
 .pkg-foot { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--s-border); }
 .pkg-addons { margin: 0 0 1rem; border: 1px solid var(--s-border); border-radius: .6rem; font-size: .85rem; }
 .pkg-addons summary { cursor: pointer; padding: .55rem .75rem; font-weight: 600; color: var(--s-blue); }
@@ -347,7 +351,7 @@ main:has(> .zip-home) + .z-footer, main:has(> .rg) + .z-footer { margin-top: 0; 
 .pkg-wide > .pkg-wide-foot { padding-right: 0; }
 .pkg-wide > .pkg-addons { grid-column: 1 / -1; grid-row: auto; margin: 1rem 0 0; padding: 0 !important; border-left: 1px solid var(--s-border) !important; }
 .svc-note { display: flex; align-items: flex-start; gap: .55rem; margin: 1rem 0 0; color: var(--s-muted); font-size: .85rem; line-height: 1.5; }
-.pkg-price { margin: 0 0 .9rem; color: var(--s-navy); font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+.pkg-price { margin: 0 0 .9rem; color: var(--s-navy, #082b52); font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
 .pkg-cta { width: 100%; min-height: 3rem; padding: .7rem 1rem; font-size: .98rem; }
 .pkg-wide { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) auto; align-items: center; gap: 0; margin-top: 1.1rem; padding: 1.1rem 1.5rem; }
 .pkg-wide > * { padding-inline: 1.5rem; }

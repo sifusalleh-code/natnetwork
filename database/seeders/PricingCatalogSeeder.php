@@ -58,7 +58,7 @@ class PricingCatalogSeeder extends Seeder
         foreach ($catalog as $serviceOrder => [$slug, $name, $summary, $packages]) {
             $service = Service::query()->updateOrCreate(['slug' => $slug], ['name' => $name, 'summary' => $summary, 'display_order' => $serviceOrder + 1, 'is_active' => true]);
             foreach ($packages as $packageOrder => [$packageSlug, $packageName, $amount, $label, $delivery, $type, $packageSummary]) {
-                ServicePackage::query()->updateOrCreate(['slug' => $packageSlug], ['service_id' => $service->id, 'name' => $packageName, 'summary' => $packageSummary, 'inclusions' => $this->inclusions()[$packageSlug] ?? null, 'price_type' => $type, 'price_amount' => $amount, 'price_label' => $label, 'delivery_estimate' => $delivery, 'display_order' => $packageOrder + 1, 'is_active' => true]);
+                ServicePackage::query()->updateOrCreate(['slug' => $packageSlug], ['service_id' => $service->id, 'name' => $packageName, 'summary' => $packageSummary, 'inclusions' => $this->inclusions()[$packageSlug] ?? null, 'use_case' => $this->useCases()[$packageSlug] ?? null, 'price_type' => $type, 'price_amount' => $amount, 'price_label' => $label, 'delivery_estimate' => $delivery, 'display_order' => $packageOrder + 1, 'is_active' => true]);
             }
         }
 
@@ -342,6 +342,41 @@ class PricingCatalogSeeder extends Seeder
             'business-integration' => ['Up to 3 systems / APIs', 'Data mapping', 'Workflow integration', 'Authentication', 'Error handling', 'Basic monitoring'],
             'advanced-integration' => ['Multiple systems', 'Complex API integration', 'Webhook', 'Automation', 'Advanced data flow', 'Error handling', 'Integration logic', 'Monitoring'],
             'custom-integration' => ['Requirement review', 'Integration architecture', 'Custom data flow', 'Custom API logic', 'Master Specification'],
+        ];
+    }
+
+    /** Kesesuaian penggunaan setiap pakej — dipaparkan bersama spec/inclusions (Services & Start Project). */
+    private function useCases(): array
+    {
+        return [
+            'landing-page' => 'Kempen, promosi, produk/servis tertentu, personal brand, freelancer dan lead generation. Sesuai jika hanya perlukan satu halaman untuk memperkenalkan tawaran dan mendapatkan enquiry.',
+            'starter-website' => 'Perniagaan kecil, startup, freelancer dan profesional yang perlukan website rasmi untuk memperkenalkan syarikat, servis, lokasi dan maklumat hubungan.',
+            'business-website' => 'SME dan perniagaan yang mempunyai beberapa produk/servis serta perlukan website profesional untuk membina kredibiliti dan memaparkan portfolio, testimoni serta maklumat lengkap.',
+            'corporate-website' => 'Syarikat sederhana/besar dan organisasi yang mempunyai banyak bahagian, projek, pasukan dan kandungan korporat.',
+            'custom-website' => 'Projek dengan keperluan khusus yang tidak boleh dipenuhi dengan struktur website standard.',
+            'product-catalogue' => 'Perniagaan yang mahu memaparkan katalog produk secara profesional tetapi belum memerlukan cart, checkout dan pembayaran online penuh.',
+            'e-commerce-starter' => 'Kedai online kecil hingga sederhana yang mahu menerima pesanan dan pembayaran secara terus melalui website.',
+            'e-commerce-business' => 'Perniagaan online yang sudah mempunyai operasi jualan lebih aktif, banyak produk, pelanggan, inventori dan promosi.',
+            'custom-e-commerce' => 'E-commerce dengan model jualan atau proses operasi khusus yang memerlukan sistem custom.',
+            'simple-web-system' => 'Sistem dalaman asas untuk menggantikan proses manual seperti rekod, borang atau pengurusan data berasingan.',
+            'business-web-app' => 'Operasi perniagaan yang memerlukan sistem berpusat dengan pengguna, approval, workflow, laporan dan rekod aktiviti.',
+            'advanced-web-app' => 'Operasi perniagaan kompleks yang memerlukan banyak modul, kawalan pengguna, integrasi dan automasi.',
+            'enterprise-complex' => 'Sistem enterprise atau projek kompleks yang memerlukan seni bina dan penyelesaian custom.',
+            'telegram-business-bot' => 'Automasi pertanyaan dan komunikasi asas melalui Telegram, terutama untuk soalan dan tindakan berulang.',
+            'ai-website-chatbot' => 'Website yang banyak menerima soalan pelanggan berulang dan memerlukan chatbot untuk menjawab serta mengumpul lead.',
+            'ai-knowledge-bot' => 'Syarikat yang mempunyai banyak dokumen/maklumat dan mahu AI menjawab berdasarkan knowledge yang ditentukan.',
+            'workflow-automation' => 'Kerja berulang dan proses operasi yang boleh disusun dalam bentuk trigger → action → notification.',
+            'custom-ai-business-assistant' => 'Syarikat yang memerlukan AI assistant khusus mengikut knowledge dan proses kerja sendiri.',
+            'advanced-ai-solution' => 'Projek AI kompleks yang memerlukan architecture, workflow dan integrasi khusus.',
+            'basic-api-integration' => 'Menyambungkan satu sistem dengan satu sistem lain untuk pertukaran data asas.',
+            'business-integration' => 'Perniagaan yang menggunakan beberapa sistem dan mahu data/workflow disambungkan.',
+            'advanced-integration' => 'Operasi dengan banyak sistem dan aliran data kompleks yang memerlukan automasi dan pemantauan.',
+            'custom-integration' => 'Integrasi khusus atau kompleks yang memerlukan reka bentuk dan logik custom.',
+            'basic-care' => 'Website asas yang memerlukan penyelenggaraan berterusan.',
+            'business-care' => 'Website perniagaan yang memerlukan penjagaan berterusan.',
+            'e-commerce-care' => 'Kedai online yang memerlukan penyelenggaraan sistem jualan.',
+            'web-app-care' => 'Sistem web/aplikasi yang memerlukan sokongan dan penyelenggaraan berterusan.',
+            'custom-sla' => 'Projek yang memerlukan tahap sokongan, response time atau SLA khusus.',
         ];
     }
 }

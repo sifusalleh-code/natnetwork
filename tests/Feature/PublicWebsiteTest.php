@@ -47,6 +47,9 @@ class PublicWebsiteTest extends TestCase
                         $this->assertStringContainsString($word, $text, $url.' '.$package->slug.' '.$word);
                     }
                 }
+                if ($package->use_case) {
+                    $this->assertStringContainsString(mb_strtolower($package->use_case), $text, $url.' '.$package->slug.' use_case');
+                }
                 foreach ($package->packageAddons as $packageAddon) {
                     $this->assertStringContainsString('<li><span>'.e($packageAddon->displayName()).'</span><b>'.e($packageAddon->price_label).'</b></li>', $html, $url.' '.$package->slug.' '.$packageAddon->name);
                 }
