@@ -45,7 +45,7 @@ class StartProjectJourneyTest extends TestCase
         $this->seed();
         $this->post(route('builder.entry'), ['entry_path' => 'GUIDED'])->assertRedirect(route('builder.start'));
         $this->get(route('builder.start'))->assertOk()->assertSee('Maklumat anda')->assertDontSee('class="bw-flow"', false);
-        $this->post(route('builder.save'), ['answers' => ['project_type' => 'company-website']])->assertSessionHasErrors('identity');
+        $this->post(route('builder.save'), ['answers' => ['project_type' => 'website-development']])->assertSessionHasErrors('identity');
 
         // Emel baharu → kod pengesahan → soal jawab dibuka.
         $this->post(route('builder.identity'), ['name' => 'Ali', 'company' => null, 'email' => 'ali@example.test', 'phone' => '0123'])->assertSessionHasNoErrors();
@@ -67,7 +67,7 @@ class StartProjectJourneyTest extends TestCase
         $this->seed();
         $user = User::factory()->create(['email' => 'siti@example.test', 'email_verified_at' => now()]);
         $this->actingAs($user, 'client')->post(route('builder.entry'), ['entry_path' => 'GUIDED']);
-        $this->postJson(route('builder.save'), ['service_package_id' => \App\Engines\Pricing\Models\ServicePackage::query()->value('id'), 'answers' => ['project_type' => 'company-website'], 'step' => 3])->assertOk();
+        $this->postJson(route('builder.save'), ['service_package_id' => \App\Engines\Pricing\Models\ServicePackage::query()->value('id'), 'answers' => ['project_type' => 'website-development'], 'step' => 3])->assertOk();
         $saved = BuilderSession::query()->where('user_id', $user->id)->sole();
         $this->assertSame(3, $saved->current_step);
 

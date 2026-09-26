@@ -64,7 +64,7 @@ class MasterSpecificationFlowTest extends TestCase
         $specification = MasterSpecification::query()->firstOrFail();
 
         $this->travel(5)->seconds();
-        $this->post(route('builder.save'), ['answers' => ['project_type' => 'company-website'], 'service_package_id' => $builder->service_package_id, 'addon_ids' => []])
+        $this->post(route('builder.save'), ['answers' => ['project_type' => 'website-development'], 'service_package_id' => $builder->service_package_id, 'addon_ids' => []])
             ->assertSessionHasNoErrors();
 
         $this->post(route('specification.approve', $specification))->assertSessionHasErrors('specification');
@@ -102,7 +102,7 @@ class MasterSpecificationFlowTest extends TestCase
             'service_package_id' => ServicePackage::query()->where('slug', $package)->value('id'),
             'addon_ids' => Addon::query()->whereIn('slug', $addons)->pluck('id')->all()]);
         $question = BuilderQuestion::query()->where('code', 'project_type')->firstOrFail();
-        BuilderAnswer::query()->create(['builder_session_id' => $builder->id, 'builder_question_id' => $question->id, 'value' => ['company-website']]);
+        BuilderAnswer::query()->create(['builder_session_id' => $builder->id, 'builder_question_id' => $question->id, 'value' => ['website-development']]);
 
         return [$customer, $builder];
     }
