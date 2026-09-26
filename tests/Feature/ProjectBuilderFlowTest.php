@@ -24,13 +24,13 @@ class ProjectBuilderFlowTest extends TestCase
 
         $package = ServicePackage::query()->where('slug', 'e-commerce-starter')->firstOrFail();
         $this->post(route('builder.save'), ['service_package_id' => $package->id, 'answers' => [
-            'project_type' => 'online-store',
+            'project_type' => 'e-commerce',
             'content_logo' => 'available',
         ]])->assertRedirect(route('builder.start'));
 
         $session = BuilderSession::query()->firstOrFail();
         $this->assertSame('GUIDED', $session->entry_path);
-        $this->assertSame(['online-store'], $session->answers()->whereHas('question', fn ($query) => $query->where('code', 'project_type'))->firstOrFail()->value);
+        $this->assertSame(['e-commerce'], $session->answers()->whereHas('question', fn ($query) => $query->where('code', 'project_type'))->firstOrFail()->value);
     }
 
     public function test_a_public_package_link_preselects_the_direct_builder_path(): void
@@ -81,7 +81,7 @@ class ProjectBuilderFlowTest extends TestCase
 
         $this->post(route('builder.save'), ['answers' => ['project_type' => 'not-a-project-type'], 'service_package_id' => ServicePackage::query()->value('id')])
             ->assertSessionHasErrors('answers.project_type');
-        $this->post(route('builder.save'), ['answers' => ['project_type' => 'company-website']])->assertSessionHasErrors('service_package_id');
+        $this->post(route('builder.save'), ['answers' => ['project_type' => 'website-development']])->assertSessionHasErrors('service_package_id');
     }
 
     public function test_builder_verification_creates_or_links_the_customer_account(): void
@@ -121,11 +121,16 @@ class ProjectBuilderFlowTest extends TestCase
         $this->assertStringContainsString('Kembali', $html);
         $this->assertStringContainsString('Simpan', $html);
 
+        // Langkah "Model": kad kategori mesti sama seperti 6 kategori servis dalam katalog Pricing.
+        foreach (['Website Development', 'E-Commerce', 'Custom Web Applications', 'AI &amp; Automation', 'System/API Integration', 'Maintenance &amp; Support'] as $category) {
+            $this->assertStringContainsString($category, $html);
+        }
+
         $this->assertStringNotContainsString('Julat bajet', $html);
         $this->assertStringContainsString('Anggaran kos projek', $html);
         $pkg = ServicePackage::query()->where('slug', 'starter-website')->value('id');
         $blog = \App\Engines\Pricing\Models\Addon::query()->where('slug', 'blog-news')->value('id');
-        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['project_type' => 'company-website'], 'step' => 1])->assertOk()->assertJson(['saved' => true, 'total_cents' => 250000]);
+        $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['project_type' => 'website-development'], 'step' => 1])->assertOk()->assertJson(['saved' => true, 'total_cents' => 250000]);
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['colour_preference' => 'lain-lain', 'colour_custom' => '#12AB34', 'content_domain' => 'have-domain', 'domain_name' => 'contoh.com.my', 'content_images' => ['product-photos', 'people-photos']], 'step' => 3])->assertOk();
         // Add-on ditick terus dalam langkah "Add-on", ikut pakej dipilih (satu sumber, tiada soalan Fungsi).
         $this->postJson(route('builder.save'), ['service_package_id' => $pkg, 'answers' => ['content_images' => []], 'addon_ids' => [$blog], 'step' => 4])->assertOk()->assertJson(['total_cents' => 300000]);
@@ -143,7 +148,7 @@ class ProjectBuilderFlowTest extends TestCase
 
         $session = BuilderSession::query()->firstOrFail();
         $answers = app(\App\Engines\Sales\Services\BuilderSessionService::class)->answers($session);
-        $this->assertSame('company-website', $answers['project_type']);
+        $this->assertSame('website-development', $answers['project_type']);
         $this->assertSame('#12AB34', $answers['colour_custom']);
         $this->assertSame('contoh.com.my', $answers['domain_name']);
         $this->assertSame([], $answers['content_images']);

@@ -27,7 +27,6 @@
         'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name, 'inclusions' => $p->inclusions ?? [], 'useCase' => $p->use_case,
             'addons' => $p->packageAddons->filter(fn ($pa) => $pa->addon && $pa->addon->is_active)->map(fn ($pa) => ['id' => (string) $pa->addon_id, 'slug' => $pa->addon->slug, 'name' => $pa->displayName(), 'label' => $pa->price_label, 'cents' => $pa->price_amount !== null ? (int) round((float) $pa->price_amount * 100) : null, 'monthly' => $pa->price_type === 'monthly'])->values()]))->values(),
         'addonIds' => array_map('strval', old('addon_ids', $builderSession->addon_ids ?? [])),
-        'serviceMap' => $cfg['project_type_services'] ?? [],
         'files' => $builderFiles,
         'colours' => collect($cfg['colours'])->map(fn ($c) => ['desc' => $c['desc'], 'swatch' => $c['swatch']]),
         'preview' => collect($cfg['photos']['preview'])->map(fn ($id) => $photo($id, 900, 640)),
@@ -380,11 +379,11 @@ function builderWizard(cfg) {
     });
     const last = cfg.steps.length - 1;
     const mocks = {
-        'online-store': { links: ['Kedai', 'Koleksi', 'Promosi', 'Akaun'], button: 'Troli', title: 'Koleksi terbaik, terus ke pintu anda', cta: 'Beli Sekarang' },
-        'promotion-landing-page': { links: ['Kelebihan', 'Harga', 'Testimoni', 'FAQ'], button: 'Hubungi', title: 'Tawaran istimewa untuk anda', cta: 'Tempah Sekarang' },
-        'business-management-system': { links: ['Dashboard', 'Pelanggan', 'Laporan', 'Tetapan'], button: 'Log Masuk', title: 'Urus operasi bisnes dalam satu sistem', cta: 'Log Masuk' },
-        'ai-chatbot-automation': { links: ['Ciri', 'Integrasi', 'Harga', 'Hubungi'], button: 'Daftar', title: 'Automasi kerja dengan bantuan AI', cta: 'Cuba Sekarang' },
-        'upgrade-existing': { links: ['Utama', 'Servis', 'Tentang', 'Hubungi'], button: 'Daftar', title: 'Wajah baharu untuk website anda', cta: 'Mulakan Sekarang' },
+        'e-commerce': { links: ['Kedai', 'Koleksi', 'Promosi', 'Akaun'], button: 'Troli', title: 'Koleksi terbaik, terus ke pintu anda', cta: 'Beli Sekarang' },
+        'custom-web-applications': { links: ['Dashboard', 'Pelanggan', 'Laporan', 'Tetapan'], button: 'Log Masuk', title: 'Urus operasi bisnes dalam satu sistem', cta: 'Log Masuk' },
+        'ai-automation': { links: ['Ciri', 'Integrasi', 'Harga', 'Hubungi'], button: 'Daftar', title: 'Automasi kerja dengan bantuan AI', cta: 'Cuba Sekarang' },
+        'system-api-integration': { links: ['Ciri', 'Integrasi', 'Harga', 'Hubungi'], button: 'Daftar', title: 'Sambungkan sistem anda dengan lancar', cta: 'Bincang Projek' },
+        'maintenance-support': { links: ['Utama', 'Servis', 'Tentang', 'Hubungi'], button: 'Daftar', title: 'Sokongan berterusan untuk aset digital anda', cta: 'Mulakan Sekarang' },
     };
     const defaultMock = { links: ['Utama', 'Servis', 'Tentang', 'Hubungi'], button: 'Daftar', title: 'Reka bentuk moden untuk bisnes anda', cta: 'Mulakan Sekarang' };
 
@@ -392,8 +391,7 @@ function builderWizard(cfg) {
         ...cfg, answers, errors: {}, uploadError: {}, uploading: null, busy: false, notice: '',
         packageId: cfg.packageId ? String(cfg.packageId) : '', addonIds: (cfg.addonIds || []).map(String),
         availablePackages() {
-            const services = this.serviceMap[this.answers.project_type] || null;
-            return services ? this.packageData.filter(p => services.includes(p.service) || p.id === String(this.packageId)) : this.packageData;
+            return this.answers.project_type ? this.packageData.filter(p => p.service === this.answers.project_type || p.id === String(this.packageId)) : this.packageData;
         },
         selectedPackage() { return this.packageData.find(p => p.id === String(this.packageId)) || null; },
         isAddonOn(a) { return this.addonIds.includes(a.id); },

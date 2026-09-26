@@ -6,10 +6,10 @@
     $serviceCopy = ['Website yang jelas, profesional dan direka untuk menukar pelawat kepada pelanggan.', 'Kedai dalam talian yang mudah diurus dan bersedia untuk berkembang.', 'Sistem web dibina mengikut cara operasi dan keperluan anda.', 'Automasi pintar untuk meningkatkan produktiviti dan mengurangkan kerja berulang.', 'Sambungkan sistem, API dan saluran komunikasi yang digunakan dalam perniagaan anda.', 'Sokongan berterusan untuk memastikan aset digital anda sentiasa berfungsi dengan baik.'];
     // Foto servis: ID foto sedia ada dalam config/builder.php (tiada foto baharu).
     $servicePhotos = [
-        'website-development' => config('builder.photos.preview.company-website'),
-        'e-commerce' => config('builder.photos.preview.online-store'),
-        'custom-web-applications' => config('builder.photos.preview.business-management-system'),
-        'ai-automation' => config('builder.photos.preview.ai-chatbot-automation'),
+        'website-development' => config('builder.photos.preview.website-development'),
+        'e-commerce' => config('builder.photos.preview.e-commerce'),
+        'custom-web-applications' => config('builder.photos.preview.custom-web-applications'),
+        'ai-automation' => config('builder.photos.preview.ai-automation'),
         'system-api-integration' => config('builder.styles.technology'),
         'maintenance-support' => config('builder.photos.preview.people-photos'),
     ];

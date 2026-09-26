@@ -15,7 +15,7 @@ class BuilderConfigurationTest extends TestCase
         $this->seed();
 
         $this->assertDatabaseHas('builder_questions', ['code' => 'project_type', 'is_required' => true]);
-        $this->assertDatabaseHas('builder_question_options', ['code' => 'online-store', 'label' => 'Kedai online']);
+        $this->assertDatabaseHas('builder_question_options', ['code' => 'e-commerce', 'label' => 'E-Commerce']);
         $this->assertDatabaseHas('builder_questions', ['code' => 'customer_login_method']);
         $this->assertDatabaseHas('builder_questions', ['code' => 'ecommerce_product_quantity']);
         $this->assertDatabaseHas('builder_questions', ['code' => 'ai_usage']);

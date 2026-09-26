@@ -11,15 +11,6 @@
 return [
     'photo_cdn' => 'https://images.unsplash.com/',
 
-    // Jenis projek (soalan project_type) → servis dalam katalog Pricing, untuk menapis pakej yang dipaparkan.
-    'project_type_services' => [
-        'company-website' => ['website-development'],
-        'promotion-landing-page' => ['website-development'],
-        'online-store' => ['e-commerce'],
-        'business-management-system' => ['custom-web-applications'],
-        'ai-chatbot-automation' => ['ai-automation', 'system-api-integration'],
-    ],
-
     'steps' => [
         ['key' => 'model', 'label' => 'Model', 'icon' => 'layers', 'section' => 'Pilih jenis projek',
             'subtitle' => 'Apakah yang anda mahu bina?',
@@ -73,7 +64,7 @@ return [
     ],
 
     'option_icons' => [
-        'project_type' => ['company-website' => 'building', 'online-store' => 'cart', 'promotion-landing-page' => 'megaphone', 'business-management-system' => 'grid', 'ai-chatbot-automation' => 'bot', 'upgrade-existing' => 'refresh', 'unsure' => 'help'],
+        'project_type' => ['website-development' => 'globe', 'e-commerce' => 'cart', 'custom-web-applications' => 'grid', 'ai-automation' => 'bot', 'system-api-integration' => 'link', 'maintenance-support' => 'check-badge'],
         'content_logo' => ['available' => 'check-badge', 'new-logo' => 'sparkle', 'upgrade-logo' => 'refresh', 'unsure' => 'help'],
         'content_images' => ['own-photos' => 'camera', 'stock-photos' => 'image', 'product-photos' => 'box', 'location-photos' => 'building', 'people-photos' => 'users', 'recommend' => 'sparkle'],
         'content_domain' => ['have-domain' => 'globe', 'no-domain' => 'plus', 'suggest-domain' => 'sparkle', 'unsure' => 'help'],
@@ -109,12 +100,12 @@ return [
         // Foto utama "Contoh paparan" mengikut jenis projek / jenis gambar.
         'preview' => [
             'default' => 'photo-1523477593243-78bbf626fd3b',
-            'company-website' => 'photo-1523477593243-78bbf626fd3b',
-            'online-store' => 'photo-1441984904996-e0b6ba687e04',
-            'promotion-landing-page' => 'photo-1505740420928-5e560c06d30e',
-            'business-management-system' => 'photo-1551288049-bebda4e38f71',
-            'ai-chatbot-automation' => 'photo-1515879218367-8466d910aaa4',
-            'upgrade-existing' => 'photo-1460925895917-afdab827c52f',
+            'website-development' => 'photo-1523477593243-78bbf626fd3b',
+            'e-commerce' => 'photo-1441984904996-e0b6ba687e04',
+            'custom-web-applications' => 'photo-1551288049-bebda4e38f71',
+            'ai-automation' => 'photo-1515879218367-8466d910aaa4',
+            'system-api-integration' => 'photo-1558494949-ef010cbdcc31',
+            'maintenance-support' => 'photo-1522071820081-009f0129c71c',
             'product-photos' => 'photo-1505740420928-5e560c06d30e',
             'location-photos' => 'photo-1497366811353-6870744d04b2',
             'people-photos' => 'photo-1522071820081-009f0129c71c',
