@@ -175,13 +175,35 @@ class BillingBillplzTest extends TestCase
         $params['x_signature'] = app(BillplzClient::class)->redirectSignature($params, self::SANDBOX_SIG);
 
         $this->get(route('billing.billplz.return').'?'.http_build_query(['billplz' => $params]))
-            ->assertOk()->assertSee('Bayaran sedang disahkan');
+            ->assertOk()->assertSee('Bayaran sedang diproses dan disahkan');
 
         $this->assertSame(Payment::STATUS_PENDING, $payment->fresh()->status);
         $this->assertSame(Invoice::STATUS_ISSUED, $invoice->fresh()->status);
 
         $params['x_signature'] = 'bad';
         $this->get(route('billing.billplz.return').'?'.http_build_query(['billplz' => $params]))->assertOk()->assertSee('tidak dapat disahkan');
+    }
+
+    public function test_status_endpoint_reflects_callback_without_reload(): void
+    {
+        [$invoice, $payment] = $this->pendingPayment();
+        $params = ['id' => $payment->gateway_bill_id, 'paid' => 'true', 'paid_at' => '2026-09-24 10:00:00 +0800'];
+        $params['x_signature'] = app(BillplzClient::class)->redirectSignature($params, self::SANDBOX_SIG);
+        $query = '?'.http_build_query(['billplz' => $params]);
+
+        // Sebelum callback: status masih pending.
+        $this->get(route('billing.billplz.status').$query)->assertOk()
+            ->assertJson(['found' => true, 'status' => Payment::STATUS_PENDING]);
+
+        // Selepas callback disahkan (server-to-server) — endpoint status kini melapor PAID.
+        $this->post(route('billing.billplz.callback'), $this->signedCallback($payment, ['paid_amount' => (string) $payment->amount_cents]))->assertOk();
+
+        $this->get(route('billing.billplz.status').$query)->assertOk()
+            ->assertJson(['found' => true, 'status' => Payment::STATUS_PAID, 'invoice' => ['number' => $invoice->number, 'amount_paid' => number_format($payment->amount_cents / 100, 2, '.', '')]]);
+
+        // Tandatangan tidak sah: tiada maklumat didedahkan.
+        $bad = $params; $bad['x_signature'] = 'bad';
+        $this->get(route('billing.billplz.status').'?'.http_build_query(['billplz' => $bad]))->assertOk()->assertJson(['found' => false]);
     }
 
     public function test_double_click_reuses_pending_bill(): void
