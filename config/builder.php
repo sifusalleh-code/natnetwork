@@ -20,26 +20,11 @@ return [
         'ai-chatbot-automation' => ['ai-automation', 'system-api-integration'],
     ],
 
-    // Fungsi (soalan website_functions) yang berbayar → slug add-on dalam katalog Pricing.
-    'function_addons' => [
-        'gallery' => 'portfolio-module', 'portfolio' => 'portfolio-module', 'blog-news' => 'blog-news',
-        'booking' => 'appointment-booking', 'customer-login' => 'membership',
-        'online-payment' => 'online-payment-integration', 'chatbot' => 'basic-chatbot',
-    ],
-
-    // Fungsi yang sudah termasuk dalam pakej (tiada caj tambahan), berdasarkan ringkasan pakej.
-    'package_includes' => [
-        'landing-page' => ['whatsapp', 'enquiry-form'],
-        'starter-website' => ['whatsapp', 'enquiry-form', 'maps'],
-        'business-website' => ['whatsapp', 'enquiry-form', 'maps', 'gallery', 'portfolio', 'testimonials'],
-        'corporate-website' => ['whatsapp', 'enquiry-form', 'maps', 'gallery', 'portfolio', 'testimonials', 'blog-news'],
-    ],
-
     'steps' => [
         ['key' => 'model', 'label' => 'Model', 'icon' => 'layers', 'section' => 'Pilih jenis projek',
             'subtitle' => 'Apakah yang anda mahu bina?',
-            'info' => 'Pilih yang paling hampir dengan keperluan anda. Soalan susulan akan muncul mengikut pilihan anda.',
-            'codes' => ['project_type', 'website_purpose', 'website_functions', 'website_information', 'customer_login_method', 'ecommerce_product_quantity', 'ecommerce_functions', 'business_system_users', 'business_system_actions', 'ai_automation_solution', 'ai_usage', 'upgrade_url', 'upgrade_scope']],
+            'info' => 'Pilih yang paling hampir dengan keperluan anda, kemudian pilih pakej.',
+            'codes' => ['project_type']],
         ['key' => 'gaya', 'label' => 'Gaya', 'icon' => 'brush', 'section' => 'Pilih gaya visual',
             'subtitle' => 'Pilih gaya visual yang paling anda suka.',
             'info' => 'Gaya menentukan rupa keseluruhan projek — susun atur, tipografi dan suasana visual.',

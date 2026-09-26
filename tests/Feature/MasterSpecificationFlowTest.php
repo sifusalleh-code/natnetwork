@@ -21,8 +21,8 @@ class MasterSpecificationFlowTest extends TestCase
 
     public function test_approved_specification_with_package_and_addons_generates_quotation_directly(): void
     {
-        // Fungsi berbayar (Blog, Booking) → add-on; Portfolio termasuk dalam Business Website (tiada caj); Additional Page dipilih terus.
-        [$customer, $builder] = $this->verifiedBuilder('business-website', ['additional-page'], ['blog-news', 'booking', 'portfolio', 'whatsapp']);
+        // Add-on ditawarkan ikut pakej (Business Website): Blog / News dan Booking, serta Additional Page dipilih terus.
+        [$customer, $builder] = $this->verifiedBuilder('business-website', ['additional-page', 'blog-news', 'appointment-booking']);
         $this->actingAs($customer, 'client')->withSession(['natnetwork_builder_session_id' => $builder->id])
             ->post(route('specification.generate'))->assertRedirect(route('specification.show'));
         $specification = MasterSpecification::query()->firstOrFail();
@@ -94,7 +94,7 @@ class MasterSpecificationFlowTest extends TestCase
             ->get(route('specification.show'))->assertForbidden();
     }
 
-    private function verifiedBuilder(string $package = 'landing-page', array $addons = [], array $functions = []): array
+    private function verifiedBuilder(string $package = 'landing-page', array $addons = []): array
     {
         $this->seed();
         $customer = User::factory()->create(['role' => User::ROLE_CUSTOMER, 'email_verified_at' => now()]);
@@ -103,9 +103,6 @@ class MasterSpecificationFlowTest extends TestCase
             'addon_ids' => Addon::query()->whereIn('slug', $addons)->pluck('id')->all()]);
         $question = BuilderQuestion::query()->where('code', 'project_type')->firstOrFail();
         BuilderAnswer::query()->create(['builder_session_id' => $builder->id, 'builder_question_id' => $question->id, 'value' => ['company-website']]);
-        if ($functions) {
-            BuilderAnswer::query()->create(['builder_session_id' => $builder->id, 'builder_question_id' => BuilderQuestion::query()->where('code', 'website_functions')->value('id'), 'value' => $functions]);
-        }
 
         return [$customer, $builder];
     }

@@ -26,11 +26,8 @@
         'packages' => $services->flatMap(fn ($s) => $s->packages)->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->price_label]),
         'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name, 'inclusions' => $p->inclusions ?? [], 'useCase' => $p->use_case,
             'addons' => $p->packageAddons->filter(fn ($pa) => $pa->addon && $pa->addon->is_active)->map(fn ($pa) => ['id' => (string) $pa->addon_id, 'slug' => $pa->addon->slug, 'name' => $pa->displayName(), 'label' => $pa->price_label, 'cents' => $pa->price_amount !== null ? (int) round((float) $pa->price_amount * 100) : null, 'monthly' => $pa->price_type === 'monthly'])->values()]))->values(),
-        'addonCatalog' => $addons->map(fn ($a) => ['id' => (string) $a->id, 'slug' => $a->slug, 'name' => $a->name, 'label' => $a->price_label, 'cents' => $a->price_amount !== null ? (int) round((float) $a->price_amount * 100) : null, 'monthly' => $a->price_type === 'monthly'])->values(),
         'addonIds' => array_map('strval', old('addon_ids', $builderSession->addon_ids ?? [])),
         'serviceMap' => $cfg['project_type_services'] ?? [],
-        'functionAddons' => $cfg['function_addons'] ?? [],
-        'packageIncludes' => $cfg['package_includes'] ?? [],
         'files' => $builderFiles,
         'colours' => collect($cfg['colours'])->map(fn ($c) => ['desc' => $c['desc'], 'swatch' => $c['swatch']]),
         'preview' => collect($cfg['photos']['preview'])->map(fn ($id) => $photo($id, 900, 640)),
@@ -203,7 +200,6 @@
                                                     @else
                                                         <span class="bw-chip-box" aria-hidden="true">@include('builder.partials.icon', ['name' => 'check'])</span>
                                                         <span class="bw-opt-name">{{ $option->label }}</span>
-                                                        @if ($question->code === 'website_functions')<span class="bw-fn-badge" :class="fnBadgeClass(@js($option->code))" x-text="fnBadge(@js($option->code))" x-show="fnBadge(@js($option->code))"></span>@endif
                                                     @endif
                                                 </label>
                                             @endforeach
@@ -264,15 +260,13 @@
                             @if ($step['key'] === 'addon')
                                 <div class="bw-addons" role="group" aria-label="Add-on">
                                     <template x-for="a in pkgAddons()" :key="a.id">
-                                        <label class="bw-addon" :class="{ 'is-on': isAddonOn(a) && ! addonIncluded(a), 'is-included': addonIncluded(a) }">
-                                            <input type="checkbox" :checked="isAddonOn(a) || addonIncluded(a)" :disabled="addonIncluded(a)" @change="toggleAddon(a)">
+                                        <label class="bw-addon" :class="{ 'is-on': isAddonOn(a) }">
+                                            <input type="checkbox" :checked="isAddonOn(a)" @change="toggleAddon(a)">
                                             <span class="bw-addon-body">
                                                 <b x-text="a.name"></b>
-                                                <em class="bw-addon-note" x-show="addonIncluded(a)">Termasuk dalam pakej — tiada caj</em>
-                                                <em class="bw-addon-note" x-show="! addonIncluded(a) && addonFunction(a) && isAddonOn(a)">Dipilih melalui soalan Fungsi</em>
                                                 <em class="bw-addon-note" x-show="a.monthly">Caj bulanan — tidak dicampur dalam jumlah kos projek</em>
                                             </span>
-                                            <span class="bw-addon-price" x-text="addonIncluded(a) ? 'Termasuk' : '+ ' + a.label"></span>
+                                            <span class="bw-addon-price" x-text="'+ ' + a.label"></span>
                                         </label>
                                     </template>
                                     <p class="bw-muted" x-show="! pkgAddons().length">Tiada add-on untuk pakej ini.</p>
@@ -402,27 +396,11 @@ function builderWizard(cfg) {
             return services ? this.packageData.filter(p => services.includes(p.service) || p.id === String(this.packageId)) : this.packageData;
         },
         selectedPackage() { return this.packageData.find(p => p.id === String(this.packageId)) || null; },
-        included() { return this.packageIncludes[this.selectedPackage()?.slug] || []; },
-        functionsApply() { return this.answers.project_type === 'company-website'; },
-        addonFunction(a) { if (! this.functionsApply()) return null; const fns = Object.keys(this.functionAddons).filter(f => this.functionAddons[f] === a.slug); return fns.length ? fns : null; },
-        addonIncluded(a) { const fns = Object.keys(this.functionAddons).filter(f => this.functionAddons[f] === a.slug); return fns.length > 0 && fns.some(f => this.included().includes(f)); },
-        isAddonOn(a) { const fns = this.addonFunction(a); return fns ? fns.some(f => (this.answers.website_functions || []).includes(f)) : this.addonIds.includes(a.id); },
-        toggleAddon(a) {
-            const fns = this.addonFunction(a);
-            if (fns) { const cur = this.answers.website_functions || []; this.answers.website_functions = this.isAddonOn(a) ? cur.filter(f => ! fns.includes(f)) : cur.concat([fns[0]]); }
-            else this.addonIds = this.addonIds.includes(a.id) ? this.addonIds.filter(x => x !== a.id) : this.addonIds.concat([a.id]);
-        },
-        fnBadge(code) { if (! this.selectedPackage()) return ''; if (this.included().includes(code)) return 'Termasuk'; const slug = this.functionAddons[code]; const a = slug && this.findAddon(slug); return a ? '+' + a.label : ''; },
-        ownAddons() { return this.selectedPackage()?.addons || []; },
-        findAddon(slug) { return this.ownAddons().find(x => x.slug === slug) || this.addonCatalog.find(x => x.slug === slug) || null; },
-        pkgAddons() {
-            const own = this.ownAddons();
-            if (! this.functionsApply()) return own;
-            return own.concat(this.addonCatalog.filter(c => ! own.some(o => o.slug === c.slug) && ! this.addonIncluded(c) && this.isAddonOn(c)));
-        },
-        explicitAddonIds() { const mapped = Object.values(this.functionAddons); const own = this.ownAddons(); const ids = this.addonIds.filter(id => own.some(o => o.id === id)); return this.functionsApply() ? ids.filter(id => ! mapped.includes(own.find(x => x.id === id)?.slug)) : ids; },
-        fnBadgeClass(code) { return this.fnBadge(code) === 'Termasuk' ? 'is-included' : 'is-paid'; },
-        selectedAddons() { return this.pkgAddons().filter(a => ! this.addonIncluded(a) && this.isAddonOn(a)); },
+        isAddonOn(a) { return this.addonIds.includes(a.id); },
+        toggleAddon(a) { this.addonIds = this.addonIds.includes(a.id) ? this.addonIds.filter(x => x !== a.id) : this.addonIds.concat([a.id]); },
+        pkgAddons() { return this.selectedPackage()?.addons || []; },
+        explicitAddonIds() { const own = this.pkgAddons(); return this.addonIds.filter(id => own.some(o => o.id === id)); },
+        selectedAddons() { return this.pkgAddons().filter(a => this.isAddonOn(a)); },
         costTotal() { return (this.selectedPackage()?.cents || 0) + this.selectedAddons().reduce((t, a) => t + (a.monthly ? 0 : (a.cents || 0)), 0); },
         rm(cents) { return 'RM' + (cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); },
         removeAddon(id) { const a = this.pkgAddons().find(x => x.id === id); if (a && this.isAddonOn(a)) this.toggleAddon(a); this.request(Math.max(this.reached, this.step)); },

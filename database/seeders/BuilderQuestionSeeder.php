@@ -46,7 +46,13 @@ class BuilderQuestionSeeder extends Seeder
                 'label' => $label, 'question_type' => $type, 'is_required' => $required,
                 'display_order' => $order + 1, 'condition' => $condition,
                 'internal_mapping' => ['additional_customer_requirement' => $code === 'additional_customer_requirement'],
-                'is_active' => $code !== 'budget', // julat bajet diganti kos sebenar (pakej + add-on)
+                // julat bajet diganti kos sebenar (pakej + add-on); soalan susulan jenis projek dibuang —
+                // langkah "Model" kekal ringkas (kategori + pakej sahaja), add-on ditawarkan ikut pakej dipilih.
+                'is_active' => ! in_array($code, [
+                    'budget', 'website_purpose', 'website_functions', 'website_information', 'customer_login_method',
+                    'ecommerce_product_quantity', 'ecommerce_functions', 'business_system_users', 'business_system_actions',
+                    'ai_automation_solution', 'ai_usage', 'upgrade_url', 'upgrade_scope',
+                ], true),
             ]);
 
             // Buang pilihan lama yang tiada lagi dalam konfigurasi (jawapan lama kekal dalam snapshot spesifikasi).

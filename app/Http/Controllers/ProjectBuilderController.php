@@ -51,8 +51,6 @@ class ProjectBuilderController extends Controller
             'builderFiles' => $session->exists ? $session->files()->orderBy('id')->get()->map(fn (BuilderFile $file) => app(BuilderFileService::class)->toArray($file))->values() : collect(),
             'builderStep' => (int) ($session->current_step ?? $request->session()->get('natnetwork_builder_step', 0)),
             'identityVerified' => $verified,
-            // Harga standard add-on bagi fungsi berbayar yang tiada dalam senarai add-on pakej.
-            'addons' => \App\Engines\Pricing\Models\Addon::query()->where('is_active', true)->whereIn('slug', array_values(config('builder.function_addons', [])))->orderBy('display_order')->get(),
             'journey' => $verified ? $journeys->for($session, $stepCount) : ['steps' => [], 'specification' => null, 'started' => false, 'paymentFailed' => false, 'canReset' => false],
         ]);
     }
