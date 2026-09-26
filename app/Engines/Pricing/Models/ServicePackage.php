@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServicePackage extends Model
 {
-    protected $fillable = ['service_id', 'slug', 'name', 'summary', 'inclusions', 'price_type', 'price_amount', 'price_label', 'delivery_estimate', 'display_order', 'is_active'];
+    protected $fillable = ['service_id', 'slug', 'name', 'summary', 'inclusions', 'use_case', 'price_type', 'price_amount', 'price_label', 'delivery_estimate', 'display_order', 'is_active'];
 
     protected function casts(): array
     {

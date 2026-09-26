@@ -24,7 +24,7 @@
         'isDirect' => $isDirect,
         'packageId' => old('service_package_id', $builderSession->service_package_id),
         'packages' => $services->flatMap(fn ($s) => $s->packages)->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->price_label]),
-        'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name, 'inclusions' => $p->inclusions ?? [],
+        'packageData' => $services->flatMap(fn ($s) => $s->packages->map(fn ($p) => ['id' => (string) $p->id, 'slug' => $p->slug, 'name' => $p->name, 'label' => $p->price_label, 'cents' => $p->price_amount !== null ? (int) round((float) $p->price_amount * 100) : null, 'service' => $s->slug, 'group' => $s->name, 'inclusions' => $p->inclusions ?? [], 'useCase' => $p->use_case,
             'addons' => $p->packageAddons->filter(fn ($pa) => $pa->addon && $pa->addon->is_active)->map(fn ($pa) => ['id' => (string) $pa->addon_id, 'slug' => $pa->addon->slug, 'name' => $pa->displayName(), 'label' => $pa->price_label, 'cents' => $pa->price_amount !== null ? (int) round((float) $pa->price_amount * 100) : null, 'monthly' => $pa->price_type === 'monthly'])->values()]))->values(),
         'addonCatalog' => $addons->map(fn ($a) => ['id' => (string) $a->id, 'slug' => $a->slug, 'name' => $a->name, 'label' => $a->price_label, 'cents' => $a->price_amount !== null ? (int) round((float) $a->price_amount * 100) : null, 'monthly' => $a->price_type === 'monthly'])->values(),
         'addonIds' => array_map('strval', old('addon_ids', $builderSession->addon_ids ?? [])),
@@ -67,6 +67,9 @@
                             </ul>
                         @elseif ($selectedPackage->summary)
                             <p class="bw-muted">{{ $selectedPackage->summary }}</p>
+                        @endif
+                        @if ($selectedPackage->use_case)
+                            <p class="pkg-suit"><b>Sesuai untuk:</b> {{ $selectedPackage->use_case }}</p>
                         @endif
                     </div>
                     <form method="post" action="{{ route('builder.entry') }}">@csrf<input type="hidden" name="entry_path" value="DIRECT_SELECTION"><input type="hidden" name="package" value="{{ $selectedPackage->slug }}"><button class="bw-btn bw-btn-primary" type="submit">Teruskan dengan pakej ini @include('builder.partials.icon', ['name' => 'arrow-right'])</button></form>
@@ -146,6 +149,7 @@
                             </template>
                         </ul>
                     </template>
+                    <p class="pkg-suit" x-show="selectedPackage()?.useCase" x-cloak><b>Sesuai untuk:</b> <span x-text="selectedPackage()?.useCase"></span></p>
                     <p class="bw-muted bw-cost-note">Harga daripada katalog semasa. Harga bertanda "+" ialah harga permulaan; jumlah dimuktamadkan dalam quotation selepas Master Specification diluluskan.</p>
                 </div>
 
@@ -355,6 +359,7 @@
                             </template>
                         </ul>
                     </template>
+                    <p class="pkg-suit" x-show="selectedPackage()?.useCase" x-cloak><b>Sesuai untuk:</b> <span x-text="selectedPackage()?.useCase"></span></p>
                     <p class="bw-muted bw-cost-note">Selepas Master Specification diluluskan, quotation dengan jumlah ini dijana terus untuk anda terima dan bayar.</p>
                 </div>
             </div>

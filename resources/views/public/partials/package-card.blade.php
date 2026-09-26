@@ -70,6 +70,7 @@
                     @foreach ($features as $f)<li>@include('public.partials.svc-icon', ['name' => 'check', 'class' => 'pkg-check'])<span>{!! str_replace('/', '/<wbr>', e($f)) !!}</span></li>@endforeach
                 </ul>
             @endif
+            @if ($package->use_case)<p class="pkg-suit"><b>Sesuai untuk:</b> {{ $package->use_case }}</p>@endif
         </div>
     </div>
     @if ($meta || $package->delivery_estimate)
@@ -110,6 +111,9 @@
             @foreach ($meta as $m)<li>@include('public.partials.svc-icon', ['name' => 'info', 'class' => 'pkg-meta-icon']){{ $m }}</li>@endforeach
             @if ($package->delivery_estimate)<li>@include('public.partials.svc-icon', ['name' => 'info', 'class' => 'pkg-meta-icon'])Anggaran pembangunan aktif: {{ $package->delivery_estimate }}</li>@endif
         </ul>
+    @endif
+    @if ($package->use_case)
+        <p class="pkg-suit"><b>Sesuai untuk:</b> {{ $package->use_case }}</p>
     @endif
     @if ($packageAddons->isNotEmpty())
         <details class="pkg-addons">
