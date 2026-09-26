@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Engines\Billing\Models\Payment;
+use App\Engines\Billing\Models\Receipt;
 use App\Engines\Billing\Services\BillplzPaymentService;
+use App\Engines\Partnership\Models\PartnerCapital;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -32,6 +35,15 @@ class BillplzController extends Controller
         $billplz = is_array($query['billplz'] ?? null) ? $query['billplz'] : [];
         $payment = $payments->paymentForRedirect($billplz)?->load('invoice');
 
+        // Bayaran modal Partnership: halaman status khas (resit lengkap selepas callback disahkan).
+        if ($payment?->invoice?->source_type === 'PartnerCapital') {
+            return view('partner.payment-status', [
+                'payment' => $payment,
+                'capital' => PartnerCapital::query()->find($payment->invoice->source_id),
+                'state' => $this->state($payment),
+            ]);
+        }
+
         return view('billing.return', ['payment' => $payment]);
     }
 
@@ -50,10 +62,16 @@ class BillplzController extends Controller
             return response()->json(['found' => false]);
         }
 
-        $invoice = $payment->invoice;
+        return response()->json(['found' => true] + $this->state($payment));
+    }
 
-        return response()->json([
-            'found' => true,
+    /** @return array<string, mixed> */
+    private function state(Payment $payment): array
+    {
+        $invoice = $payment->invoice;
+        $receipt = Receipt::query()->where('payment_id', $payment->id)->latest('id')->first();
+
+        return [
             'status' => $payment->status,
             'invoice' => [
                 'number' => $invoice->number,
@@ -63,6 +81,13 @@ class BillplzController extends Controller
                 'status' => $invoice->status,
             ],
             'paid_amount' => $payment->paid_amount_cents !== null ? number_format($payment->paid_amount_cents / 100, 2) : null,
-        ]);
+            'paid_at' => $payment->paid_at?->timezone(config('app.timezone'))->format('d M Y, h:i A'),
+            'bill_id' => $payment->gateway_bill_id,
+            'receipt' => $receipt ? [
+                'number' => $receipt->number,
+                'amount' => number_format((float) $receipt->amount, 2),
+                'issued_at' => $receipt->issued_at?->format('d M Y, h:i A'),
+            ] : null,
+        ];
     }
 }
