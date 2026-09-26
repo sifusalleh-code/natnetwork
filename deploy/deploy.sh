@@ -5,7 +5,7 @@
 #
 # Pangkalan data: server production ini SEDIA ADA guna MySQL/MariaDB (DB_CONNECTION di .env).
 # Dev/pembangunan tempatan boleh guna SQLite (paling mudah, tiada server DB berasingan) — kedua-dua
-# disokong; langkah sandaran (6/8) mengesan DB_CONNECTION dan buat mysqldump/salin fail sqlite
+# disokong; langkah sandaran (7/9) mengesan DB_CONNECTION dan buat mysqldump/salin fail sqlite
 # ikut mana yang benar-benar digunakan. Lihat docs/OWNER_DECISIONS_2026_09_25.md.
 set -euo pipefail
 
@@ -24,7 +24,7 @@ as_web() { runuser -u "$WEB_USER" -- "$@"; }
 [ -f "$ARCHIVE" ] || { echo "Fail $ARCHIVE tiada. Jalankan pack.bat di PC dahulu."; exit 1; }
 id "$WEB_USER" >/dev/null 2>&1 || { echo "User $WEB_USER tiada — adakah Nginx dipasang?"; exit 1; }
 
-step "1/8 PHP 8.4 (Remi, tanpa Apache)"
+step "1/9 PHP 8.4 (Remi, tanpa Apache)"
 if [ ! -x /usr/sbin/php-fpm ]; then
   dnf -y install epel-release
   rpm -q remi-release >/dev/null 2>&1 || dnf -y install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
@@ -39,7 +39,7 @@ fi
 if rpm -q httpd >/dev/null 2>&1; then echo "AMARAN: pakej httpd (Apache) dipasang. Pastikan ia tidak berjalan: systemctl disable --now httpd"; fi
 php -m | grep -qi pdo_sqlite || { echo "pdo_sqlite tiada"; exit 1; }
 
-step "2/8 Composer"
+step "2/9 Composer"
 if ! command -v composer >/dev/null 2>&1; then
   php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');"
   php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
@@ -47,7 +47,7 @@ if ! command -v composer >/dev/null 2>&1; then
 fi
 composer --version
 
-step "3/8 Kod aplikasi -> $APP_DIR"
+step "3/9 Kod aplikasi -> $APP_DIR"
 mkdir -p "$APP_DIR"
 [ -f "$APP_DIR/.env" ] && cp -a "$APP_DIR/.env" "/root/natnetwork.env.bak.$(date +%Y%m%d%H%M%S)"
 tar -xzf "$ARCHIVE" -C "$APP_DIR"
@@ -55,7 +55,23 @@ cd "$APP_DIR"
 mkdir -p storage/app/private storage/app/public storage/framework/{cache/data,sessions,views,testing} storage/logs bootstrap/cache database
 rm -f bootstrap/cache/*.php
 
-step "4/8 .env production"
+step "4/9 Node.js & aset frontend (npm run build)"
+# public/build/ diabaikan dalam Git (.gitignore) — mesti dibina semula di sini setiap deploy,
+# jika tidak halaman guna aset Vite lapuk/tiada langsung.
+if ! command -v node >/dev/null 2>&1; then
+  dnf -y module reset nodejs 2>/dev/null || true
+  dnf -y module enable nodejs:22 2>/dev/null || true
+  dnf -y install nodejs || { curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -; dnf -y install nodejs; }
+fi
+echo "Node: $(node -v 2>/dev/null || echo 'TIADA'), npm: $(npm -v 2>/dev/null || echo 'TIADA')"
+if command -v npm >/dev/null 2>&1; then
+  npm ci --no-audit --no-fund
+  npm run build
+else
+  echo "AMARAN: npm tiada — aset frontend TIDAK dibina semula. Public/build lama (jika ada) akan terus digunakan."
+fi
+
+step "5/9 .env production"
 if [ ! -f .env ]; then
   cp .env.example .env
   sed -i \
@@ -74,7 +90,7 @@ fi
 echo "APP_ENV/APP_DEBUG/APP_URL semasa:"; grep -E '^(APP_ENV|APP_DEBUG|APP_URL|DB_CONNECTION)=' .env || true
 [ -f database/database.sqlite ] || touch database/database.sqlite
 
-step "5/8 Composer install + kebenaran fail"
+step "6/9 Composer install + kebenaran fail"
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 [ "${NEW_ENV:-0}" = "1" ] && php artisan key:generate --force
 # Kod: milik root, boleh dibaca oleh kumpulan nginx. Folder boleh tulis: milik nginx.
@@ -90,7 +106,7 @@ if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" != "Disabled" ]; t
   setsebool -P httpd_can_network_connect 1
 fi
 
-step "6/8 Sandaran pangkalan data + Migration + cache"
+step "7/9 Sandaran pangkalan data + Migration + cache"
 # Keputusan Owner 25 Sep 2026 #4: sandaran wajib sebelum migrasi (AGENTS/MS §16).
 # Kaedah sandaran mengikut DB_CONNECTION sebenar dalam .env — jangan andaikan SQLite.
 db_env() { grep -E "^$1=" .env 2>/dev/null | tail -n1 | cut -d '=' -f2- | sed -e 's/^"//' -e 's/"$//'; }
@@ -125,7 +141,7 @@ as_web php artisan config:cache
 as_web php artisan route:cache
 as_web php artisan view:cache
 
-step "7/8 PHP-FPM pool natnetwork"
+step "8/9 PHP-FPM pool natnetwork"
 cat > /etc/php-fpm.d/natnetwork.conf <<POOL
 [natnetwork]
 user = $WEB_USER
@@ -148,7 +164,7 @@ systemctl enable php-fpm >/dev/null 2>&1 || true
 systemctl restart php-fpm
 systemctl is-active --quiet php-fpm || { journalctl -u php-fpm -n 30 --no-pager; exit 1; }
 
-step "8/8 Nginx vhost $DOMAIN + SSL"
+step "9/9 Nginx vhost $DOMAIN + SSL"
 VHOST=/etc/nginx/conf.d/$DOMAIN.conf
 OTHER=$(grep -lE "server_name[^;]*\b$DOMAIN\b" /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/* 2>/dev/null | grep -v "^$VHOST$" || true)
 [ -n "$OTHER" ] && echo "AMARAN: $DOMAIN juga ditakrif dalam: $OTHER (tidak diubah)."
